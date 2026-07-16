@@ -1,0 +1,4 @@
+PATIENT:1|Rifat|21|fever |Nayeem|Improve now|need medicine & proper nutritious food |napa
+DOCTOR:1|Dr.Nayeem|Medicine  
+DOCTOR:2|Dr. Atoshi|Medicine
+PATIENT:2|Aira|21|Cough|Atoshi|Feel much better|Need proper nutritious food|Tofen 

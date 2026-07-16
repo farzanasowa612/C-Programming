@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HEALWISH - Healthcare Management System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0f766e;
+            --primary-light: #115e59;
+            --primary-bg: #f0fdfa;
+            --accent-color: #0ea5e9;
+            --danger-color: #ef4444;
+            --success-color: #10b981;
+            --text-dark: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: var(--text-dark);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .hidden { display: none !important; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.625rem 1.25rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            border-radius: 0.375rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-primary:hover { background-color: var(--primary-light); }
+        .btn-danger { background-color: var(--danger-color); color: white; }
+        .btn-danger:hover { opacity: 0.9; }
+        .btn-secondary { background-color: #e2e8f0; color: #475569; }
+        .btn-secondary:hover { background-color: #cbd5e1; }
+
+        #login-screen {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at top right, #ccfbf1 0%, #f8fafc 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .login-card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 1rem;
+            box-shadow: var(--shadow-md);
+            width: 100%;
+            max-width: 450px;
+            border: 1px solid var(--border-color);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-header h1 {
+            color: var(--primary-color);
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        .login-header p {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        aside {
+            width: 280px;
+            background: white;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+
+        .aside-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .aside-header h2 {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        .aside-header p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .nav-list {
+            list-style: none;
+            padding: 1rem 0;
+            flex-grow: 1;
+        }
+
+        .nav-item {
+            padding: 0.5rem 1rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background-color: var(--primary-bg);
+            color: var(--primary-color);
+        }
+
+        .aside-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-color);
+            background: #f9fafb;
+        }
+
+        .user-badge {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .user-badge .role {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            text-transform: uppercase;
+        }
+
+        .user-badge .name {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        header {
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .workspace-content {
+            padding: 2rem;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.375rem;
+            color: var(--text-dark);
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            outline: none;
+            font-size: 0.875rem;
+            transition: border-color 0.15s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .stat-card h4 {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .split-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .split-grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 2rem;
+        }
+
+        .card h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+
+        th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: var(--text-dark);
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: #374151;
+        }
+
+        tr:hover { background-color: #f1f5f9; }
+
+        .report-box {
+            border: 2px dashed var(--border-color);
+            padding: 2rem;
+            background: #fafafa;
+            border-radius: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>HEALWISH Portal</h1>
+                <p>Healthcare Management Engine</p>
+            </div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-username">Username / Access ID</label>
+                    <input type="text" id="login-username" required placeholder="e.g., admin, doc101, pat201">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" required placeholder="••••••••">
+                </div>
+                <div class="form-group">
+                    <label for="login-role">System Role Context</label>
+                    <select id="login-role">
+                        <option value="Admin">Administrator (admin / admin123)</option>
+                        <option value="Doctor">On-Duty Physician (Your Custom ID / doctor123)</option>
+                        <option value="Patient">Registered Patient (Your Custom ID / patient123)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; margin-top: 1rem;">Authenticate Account</button>
+            </form>
+        </div>
+    </div>
+
+    <aside id="sidebar" class="hidden">
+        <div>
+            <div class="aside-header">
+                <h2>HEALWISH</h2>
+                <p>Active Management Panel</p>
+            </div>
+            <ul class="nav-list" id="nav-list">
+                </ul>
+        </div>
+        <div class="aside-footer">
+            <div class="user-badge">
+                <span class="role" id="badge-role">Admin</span>
+                <span class="name" id="badge-name">User Name</span>
+            </div>
+        </div>
+    </aside>
+
+    <main id="main-workspace" class="hidden">
+        <header>
+            <h2 id="current-view-title">Dashboard Overview</h2>
+            <button class="btn btn-secondary" onclick="logoutSystem()">Secure Logout</button>
+        </header>
+
+        <div class="workspace-content">
+
+            <div id="admin-dashboard-view" class="view-panel hidden">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4>Total Active Patients</h4>
+                        <div class="value" id="stat-patients">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>On-Duty Specialists</h4>
+                        <div class="value" id="stat-doctors">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Infrastructure Status</h4>
+                        <div class="value" style="color:var(--success-color);">Ready</div>
+                    </div>
+                </div>
+
+                <div class="split-grid">
+                    <div class="card">
+                        <h3 id="patient-form-title">Admit New Patient</h3>
+                        <form id="patient-form">
+                            <div class="form-group">
+                                <label for="p-id">Custom Patient ID</label>
+                                <input type="text" id="p-id" required placeholder="e.g., pat201">
+                            </div>
+                            <div class="form-group">
+                                <label for="p-name">Full Patient Name</label>
+                                <input type="text" id="p-name" required placeholder="Enter name">
+                            </div>
+                            <div class="form-group">
+                                <label for="p-age">Age</label>
+                                <input type="number" id="p-age" required placeholder="Years">
+                            </div>
+                            <div class="form-group">
+                                <label for="p-disease">Chief Symptoms / Disease</label>
+                                <input type="text" id="p-disease" required placeholder="Symptom description">
+                            </div>
+                            <div class="form-group">
+                                <label for="p-doctor">Assign Consultant Doctor</label>
+                                <select id="p-doctor">
+                                    <option value="">-- Choose Physician --</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button type="submit" class="btn btn-primary" id="btn-p-save">Save Record</button>
+                                <button type="button" class="btn btn-secondary" onclick="resetPatientForm()">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h3>Patient Intake Registry</h3>
+                        <div class="form-group">
+                            <input type="text" id="patient-search-input" onkeyup="searchPatientRegistry()" placeholder="Filter patients by name or ID...">
+                        </div>
+                        <div class="table-container">
+                            <table id="patient-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Patient Name</th>
+                                        <th>Age</th>
+                                        <th>Disease</th>
+                                        <th>Consultant</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="admin-doctors-view" class="view-panel hidden">
+                <div class="split-grid">
+                    <div class="card">
+                        <h3>Add Medical Specialist Profile</h3>
+                        <form id="doctor-form">
+                            <div class="form-group">
+                                <label for="d-id">Doctor Access ID</label>
+                                <input type="text" id="d-id" required placeholder="e.g., doc101">
+                            </div>
+                            <div class="form-group">
+                                <label for="d-name">Doctor Name</label>
+                                <input type="text" id="d-name" required placeholder="Dr. Enter Name">
+                            </div>
+                            <div class="form-group">
+                                <label for="d-specialty">Area of Specialty</label>
+                                <input type="text" id="d-specialty" required placeholder="e.g., Cardiology">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Register Specialty Profile</button>
+                        </form>
+                    </div>
+                    <div class="card">
+                        <h3>Active Medical Consultants Panel</h3>
+                        <div class="table-container">
+                            <table id="doctor-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Doctor Name</th>
+                                        <th>Specialty</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="admin-reports-view" class="view-panel hidden">
+                <div class="card">
+                    <h3>Administrative Clinical Audit Report</h3>
+                    <div class="report-box" id="system-report-box">
+                        </div>
+                    <button class="btn btn-primary" style="margin-top: 1rem;" onclick="window.print()">Print This Audit</button>
+                </div>
+            </div>
+
+            <div id="doctor-dashboard-view" class="view-panel hidden">
+                <div class="split-grid">
+                    <div class="card">
+                        <h3>Your Consultation Queue</h3>
+                        <div class="table-container">
+                            <table id="doc-queue-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Patient Name</th>
+                                        <th>Primary Symptoms</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card" id="clinical-chart-card">
+                        <h3>Active Diagnosis Room</h3>
+                        <p class="text-muted" id="no-patient-alert" style="text-align: center; padding: 2rem 0;">Select a patient from your clinical queue list to open their health chart.</p>
+
+                        <form id="clinical-update-form" class="hidden">
+                            <input type="hidden" id="c-patient-id">
+                            <div class="form-group" style="background-color: var(--primary-bg); padding: 1rem; border-radius: 0.375rem; margin-bottom: 1rem;">
+                                <p><strong>Patient:</strong> <span id="c-patient-name">Selected</span></p>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);"><strong>Admitted Chief Symptom:</strong> <span id="c-patient-symptom">Symptom</span></p>
+                            </div>
+                            <div class="form-group">
+                                <label for="c-diagnosis">Clinical Diagnosis</label>
+                                <input type="text" id="c-diagnosis" required placeholder="Diagnostic outcome">
+                            </div>
+                            <div class="form-group">
+                                <label for="c-treatment">Active Treatment Plan</label>
+                                <input type="text" id="c-treatment" required placeholder="Regimen plan">
+                            </div>
+                            <div class="form-group">
+                                <label for="c-prescription">Prescriptions Issued</label>
+                                <textarea id="c-prescription" rows="3" required placeholder="Dosage parameters"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Commit Consultation Updates</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div id="patient-dashboard-view" class="view-panel hidden">
+                <div class="card">
+                    <h3>Your HEALWISH Electronic Health Record (EHR)</h3>
+                    <div id="patient-record-sheet">
+                        </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // Completely Blank State Database Configuration
+        let appState = {
+            currentUser: null,
+            currentRole: null,
+            patients: [],
+            doctors: []
+        };
+
+        function initApp() {
+            // Load if items exist in localstorage shell, otherwise bootstrap completely empty arrays
+            if (localStorage.getItem("healwish_patients")) {
+                appState.patients = JSON.parse(localStorage.getItem("healwish_patients"));
+            } else {
+                appState.patients = [];
+                localStorage.setItem("healwish_patients", JSON.stringify([]));
+            }
+
+            if (localStorage.getItem("healwish_doctors")) {
+                appState.doctors = JSON.parse(localStorage.getItem("healwish_doctors"));
+            } else {
+                appState.doctors = [];
+                localStorage.setItem("healwish_doctors", JSON.stringify([]));
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem("healwish_patients", JSON.stringify(appState.patients));
+            localStorage.setItem("healwish_doctors", JSON.stringify(appState.doctors));
+        }
+
+        document.getElementById("login-form").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const u = document.getElementById("login-username").value.trim();
+            const p = document.getElementById("login-password").value.trim();
+            const r = document.getElementById("login-role").value;
+
+            let loginSuccess = false;
+            let displayUser = "";
+
+            if (r === "Admin" && u === "admin" && p === "admin123") {
+                loginSuccess = true;
+                displayUser = "System Administrator";
+            } else if (r === "Doctor" && p === "doctor123") {
+                const doc = appState.doctors.find(d => d.id === u);
+                if (doc) {
+                    loginSuccess = true;
+                    displayUser = doc.name;
+                } else {
+                    alert("Doctor ID not found in current database records! Please create this profile from Admin login first.");
+                }
+            } else if (r === "Patient" && p === "patient123") {
+                const pat = appState.patients.find(pt => pt.id === u);
+                if (pat) {
+                    loginSuccess = true;
+                    displayUser = pat.name;
+                } else {
+                    alert("Patient ID not found in current database records! Please register/admit this profile from Admin login first.");
+                }
+            } else {
+                alert("Incorrect password combo entered.");
+            }
+
+            if (loginSuccess) {
+                appState.currentUser = u;
+                appState.currentRole = r;
+                setupSessionUI(displayUser);
+            }
+        });
+
+        function setupSessionUI(displayName) {
+            document.getElementById("login-screen").classList.add("hidden");
+            document.getElementById("sidebar").classList.remove("hidden");
+            document.getElementById("main-workspace").classList.remove("hidden");
+
+            document.getElementById("badge-role").innerText = appState.currentRole;
+            document.getElementById("badge-name").innerText = displayName;
+
+            buildNavigation();
+
+            if (appState.currentRole === "Admin") {
+                switchView('admin-dashboard', 'Dashboard Overview');
+            } else if (appState.currentRole === "Doctor") {
+                switchView('doctor-dashboard', 'Doctor Medical Consultation Portal');
+            } else if (appState.currentRole === "Patient") {
+                switchView('patient-dashboard', 'Patient Portal EHR');
+            }
+        }
+
+        function buildNavigation() {
+            const nav = document.getElementById("nav-list");
+            nav.innerHTML = "";
+
+            if (appState.currentRole === "Admin") {
+                nav.innerHTML = `
+                    <li class="nav-item"><a href="#" class="nav-link active" onclick="switchView('admin-dashboard', 'Dashboard Overview', this)">Admit Patients</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link" onclick="switchView('admin-doctors', 'Manage Clinical Doctors', this)">Doctor Profiles</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link" onclick="switchView('admin-reports', 'System Reports', this)">Generate Reports</a></li>
+                `;
+            } else if (appState.currentRole === "Doctor") {
+                nav.innerHTML = `
+                    <li class="nav-item"><a href="#" class="nav-link active" onclick="switchView('doctor-dashboard', 'My Patients Consultation Room', this)">My Consultation Queue</a></li>
+                `;
+            } else if (appState.currentRole === "Patient") {
+                nav.innerHTML = `
+                    <li class="nav-item"><a href="#" class="nav-link active" onclick="switchView('patient-dashboard', 'My Electronic Health Records', this)">My Medical History</a></li>
+                `;
+            }
+        }
+
+        function switchView(viewId, title, element = null) {
+            document.getElementById("current-view-title").innerText = title;
+
+            const panels = document.querySelectorAll(".view-panel");
+            panels.forEach(p => p.classList.add("hidden"));
+
+            document.getElementById(viewId + "-view").classList.remove("hidden");
+
+            if (element) {
+                const tabs = document.querySelectorAll(".nav-link");
+                tabs.forEach(t => t.classList.remove("active"));
+                element.classList.add("active");
+            }
+
+            if (viewId === 'admin-dashboard') { loadAdminDashboard(); }
+            if (viewId === 'admin-doctors') { loadAdminDoctors(); }
+            if (viewId === 'admin-reports') { loadAdminReports(); }
+            if (viewId === 'doctor-dashboard') { loadDoctorDashboard(); }
+            if (viewId === 'patient-dashboard') { loadPatientDashboard(); }
+        }
+
+        function logoutSystem() {
+            appState.currentUser = null;
+            appState.currentRole = null;
+            document.getElementById("login-screen").classList.remove("hidden");
+            document.getElementById("sidebar").classList.add("hidden");
+            document.getElementById("main-workspace").classList.add("hidden");
+            document.getElementById("login-username").value = "";
+            document.getElementById("login-password").value = "";
+        }
+
+        /* ADMIN PROCESS CONTROLS */
+        function loadAdminDashboard() {
+            document.getElementById("stat-patients").innerText = appState.patients.length;
+            document.getElementById("stat-doctors").innerText = appState.doctors.length;
+
+            const docSel = document.getElementById("p-doctor");
+            docSel.innerHTML = '<option value="">-- Choose Physician --</option>';
+            appState.doctors.forEach(d => {
+                docSel.innerHTML += `<option value="${d.name}">${d.name} (${d.specialty})</option>`;
+            });
+
+            renderPatientTable(appState.patients);
+        }
+
+        function renderPatientTable(list) {
+            const tbody = document.querySelector("#patient-table tbody");
+            tbody.innerHTML = "";
+
+            if(list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Database Empty. Add dynamic entries above.</td></tr>`;
+                return;
+            }
+
+            list.forEach((pt) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${pt.id}</strong></td>
+                        <td>${pt.name}</td>
+                        <td>${pt.age}</td>
+                        <td>${pt.disease}</td>
+                        <td>${pt.doctor || '<span style="color:var(--danger-color)">Unassigned</span>'}</td>
+                        <td>
+                            <button class="btn btn-secondary" style="padding: 4px 8px; font-size:0.75rem;" onclick="editPatient('${pt.id}')">Edit</button>
+                            <button class="btn btn-danger" style="padding: 4px 8px; font-size:0.75rem;" onclick="deletePatientRecord('${pt.id}')">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        document.getElementById("patient-form").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const id = document.getElementById("p-id").value.trim();
+            const name = document.getElementById("p-name").value.trim();
+            const age = document.getElementById("p-age").value.trim();
+            const disease = document.getElementById("p-disease").value.trim();
+            const doctor = document.getElementById("p-doctor").value;
+
+            const existingIndex = appState.patients.findIndex(p => p.id === id);
+
+            if (existingIndex > -1) {
+                appState.patients[existingIndex].name = name;
+                appState.patients[existingIndex].age = age;
+                appState.patients[existingIndex].disease = disease;
+                appState.patients[existingIndex].doctor = doctor;
+                alert("Patient details updated.");
+            } else {
+                appState.patients.push({
+                    id: id, name: name, age: age, disease: disease, doctor: doctor,
+                    diagnosis: "Awaiting Evaluation", treatment: "Under Review", prescription: "None"
+                });
+                alert("Patient admission profile successfully added.");
+            }
+
+            saveState();
+            loadAdminDashboard();
+            resetPatientForm();
+        });
+
+        function editPatient(id) {
+            const pt = appState.patients.find(p => p.id === id);
+            if (pt) {
+                document.getElementById("p-id").value = pt.id;
+                document.getElementById("p-id").setAttribute("readonly", "true");
+                document.getElementById("p-name").value = pt.name;
+                document.getElementById("p-age").value = pt.age;
+                document.getElementById("p-disease").value = pt.disease;
+                document.getElementById("p-doctor").value = pt.doctor;
+                document.getElementById("patient-form-title").innerText = "Edit Patient Chart";
+            }
+        }
+
+        function resetPatientForm() {
+            document.getElementById("patient-form").reset();
+            document.getElementById("p-id").removeAttribute("readonly");
+            document.getElementById("patient-form-title").innerText = "Admit New Patient";
+        }
+
+        function deletePatientRecord(id) {
+            if (confirm(`Delete patient file matching ID: ${id}?`)) {
+                appState.patients = appState.patients.filter(p => p.id !== id);
+                saveState();
+                loadAdminDashboard();
+            }
+        }
+
+        function searchPatientRegistry() {
+            const query = document.getElementById("patient-search-input").value.toLowerCase();
+            const filtered = appState.patients.filter(p =>
+                p.name.toLowerCase().includes(query) || p.id.toLowerCase().includes(query)
+            );
+            renderPatientTable(filtered);
+        }
+
+        /* DOCTORS REGISTRY PROCESSES */
+        function loadAdminDoctors() {
+            renderDoctorsTable();
+        }
+
+        function renderDoctorsTable() {
+            const tbody = document.querySelector("#doctor-table tbody");
+            tbody.innerHTML = "";
+
+            if(appState.doctors.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-muted);">No profiles built yet.</td></tr>`;
+                return;
+            }
+
+            appState.doctors.forEach(d => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${d.id}</strong></td>
+                        <td>${d.name}</td>
+                        <td>${d.specialty}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        document.getElementById("doctor-form").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const id = document.getElementById("d-id").value.trim();
+            const name = document.getElementById("d-name").value.trim();
+            const specialty = document.getElementById("d-specialty").value.trim();
+
+            if (appState.doctors.some(d => d.id === id)) {
+                alert("Doctor ID already registered.");
+                return;
+            }
+
+            appState.doctors.push({ id, name, specialty });
+            saveState();
+            renderDoctorsTable();
+            document.getElementById("doctor-form").reset();
+            alert("Doctor registered successfully.");
+        });
+
+        /* SYSTEMS AUDIT GENERATION */
+        function loadAdminReports() {
+            const box = document.getElementById("system-report-box");
+            const unassignedCount = appState.patients.filter(p => !p.doctor).length;
+
+            box.innerHTML = `
+                <h4 style="font-size:1.125rem; font-weight:700; margin-bottom:1rem; color: var(--primary-color);">HEALWISH SYSTEM PERFORMANCE AND CLINICAL AUDIT REPORT</h4>
+                <p style="margin-bottom:0.75rem;"><strong>File Status Mode:</strong> Operational Live | Local Storage Engine</p>
+                <hr style="margin: 1rem 0; border-color: var(--border-color);">
+                <p style="margin-bottom: 0.5rem;"><strong>Summary Overview Metrics:</strong></p>
+                <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+                    <li>Total Patient Records Configured: <strong>${appState.patients.length} entries</strong></li>
+                    <li>Active Speciality Medical Consultants: <strong>${appState.doctors.length} doctors</strong></li>
+                    <li>Patients Pending Doctor Allocation Assignments: <strong>${unassignedCount} individuals</strong></li>
+                </ul>
+            `;
+        }
+
+        /* DOCTOR CONSOLE CONTROLS */
+        function loadDoctorDashboard() {
+            const currentDocObj = appState.doctors.find(d => d.id === appState.currentUser);
+            const docName = currentDocObj ? currentDocObj.name : "";
+
+            const tbody = document.querySelector("#doc-queue-table tbody");
+            tbody.innerHTML = "";
+
+            const assignedPatients = appState.patients.filter(p => p.doctor === docName);
+
+            if (assignedPatients.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No patients matching your registered Name are currently assigned.</td></tr>`;
+                return;
+            }
+
+            assignedPatients.forEach(p => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${p.id}</strong></td>
+                        <td>${p.name}</td>
+                        <td>${p.disease}</td>
+                        <td>
+                            <button class="btn btn-primary" style="padding:4px 10px; font-size:0.75rem;" onclick="openPatientChart('${p.id}')">Examine</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function openPatientChart(patientId) {
+            const p = appState.patients.find(pt => pt.id === patientId);
+            if (p) {
+                document.getElementById("no-patient-alert").classList.add("hidden");
+                document.getElementById("clinical-update-form").classList.remove("hidden");
+
+                document.getElementById("c-patient-id").value = p.id;
+                document.getElementById("c-patient-name").innerText = p.name;
+                document.getElementById("c-patient-symptom").innerText = p.disease;
+
+                document.getElementById("c-diagnosis").value = p.diagnosis || "";
+                document.getElementById("c-treatment").value = p.treatment || "";
+                document.getElementById("c-prescription").value = p.prescription || "";
+            }
+        }
+
+        document.getElementById("clinical-update-form").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const id = document.getElementById("c-patient-id").value;
+            const diagnosis = document.getElementById("c-diagnosis").value.trim();
+            const treatment = document.getElementById("c-treatment").value.trim();
+            const prescription = document.getElementById("c-prescription").value.trim();
+
+            const index = appState.patients.findIndex(p => p.id === id);
+            if (index > -1) {
+                appState.patients[index].diagnosis = diagnosis;
+                appState.patients[index].treatment = treatment;
+                appState.patients[index].prescription = prescription;
+
+                saveState();
+                alert("Consultation chart parameters saved successfully.");
+
+                document.getElementById("clinical-update-form").classList.add("hidden");
+                document.getElementById("no-patient-alert").classList.remove("hidden");
+                loadDoctorDashboard();
+            }
+        });
+
+        /* PATIENT PORTAL INTERFACE */
+        function loadPatientDashboard() {
+            const p = appState.patients.find(pt => pt.id === appState.currentUser);
+            const sheet = document.getElementById("patient-record-sheet");
+
+            if (!p) {
+                sheet.innerHTML = `<p style="color:var(--danger-color)">EHR Profile matching user ID context could not be fetched.</p>`;
+                return;
+            }
+
+            sheet.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+                    <div>
+                        <p style="margin-bottom: 0.5rem;"><strong>Patient ID Reference:</strong> ${p.id}</p>
+                        <p style="margin-bottom: 0.5rem;"><strong>Full Name:</strong> ${p.name}</p>
+                        <p style="margin-bottom: 0.5rem;"><strong>Age Profile:</strong> ${p.age}</p>
+                        <p style="margin-bottom: 0.5rem;"><strong>Primary Complaint:</strong> ${p.disease}</p>
+                    </div>
+                    <div style="background-color: var(--primary-bg); padding: 1.5rem; border-radius: 0.5rem;">
+                        <p style="margin-bottom: 0.5rem; color: var(--primary-color);"><strong>Assigned Medical Specialist:</strong> ${p.doctor || 'Awaiting Allocation'}</p>
+                        <p style="margin-bottom: 0.5rem;"><strong>Clinical Diagnosis Status:</strong> ${p.diagnosis}</p>
+                        <p style="margin-bottom: 0.5rem;"><strong>Treatment Regime:</strong> ${p.treatment}</p>
+                        <p style="margin-bottom: 0.5rem;"><strong>Prescription Orders:</strong> ${p.prescription}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
