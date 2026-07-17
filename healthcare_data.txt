@@ -1,0 +1,2 @@
+PATIENT:1|rifat|22|Fever|Dr. Atoshi|Awaiting Evaluation|Under Review|None
+PATIENT:2|Aira|21|cough|Dr. Nayeem|Awaiting Evaluation|Under Review|None
