@@ -29,7 +29,7 @@ A simple console-based healthcare management program written in C. It supports a
 Use a C compiler such as `gcc`:
 
 ```bash
-gcc "C Code HEALWISH.c" -o HEALWISH
+gcc "C_Code_HEALWISH.c" -o HEALWISH
 ```
 
 ## How to Run

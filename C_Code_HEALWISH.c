@@ -1,470 +1,427 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
-// Structures
-typedef struct {
-    char id[50];
-    char name[100];
-    char degree[100];          // Added Field
-    char medical_college[150];  // Added Field
-    char specialty[100];
-} Doctor;
+#define DATA_FILE "healthcare_data.txt"
 
+// Data Structures based on the SRS Specification
 typedef struct {
-    char id[50];
-    char name[100];
-    int age;
-    char symptom[200];
-    char assigned_doctor[100];
-    char appointment_datetime[100];
-    char diagnosis[200];
-    char treatment_info[200];
-    char prescription[300];
+    char id[20];
+    char name[50];
+    char age[5];
+    char disease[50];
+    char doctor[50];
+    char diagnosis[100];
+    char treatment[100];
+    char prescription[100];
 } Patient;
 
-// Dynamic Pointer Arrays (No Limits)
-Patient* patients = NULL;
-Doctor* doctors = NULL;
-int patient_count = 0;
-int doctor_count = 0;
+typedef struct {
+    char id[20];
+    char name[50];
+    char specialty[50];
+} Doctor;
 
 // Function Prototypes
+void mainMenu();
 void adminMenu();
-void doctorMenu(char* doc_id);
-void patientMenu(char* pat_id);
-void updatePatientRecord();
-void deletePatientRecord();
-void searchPatientRecord();
-void addDoctorInformation();
-void generateReport();
+void doctorMenu();
+void patientMenu();
+
+void addPatient();
+void viewPatients();
+void searchPatient();
+void deletePatient();
+
+void addDoctor();
+void viewDoctors();
+
+void doctorConsultation();
+void viewPatientHistory();
+
+// Helper Functions for File Handling
+void savePatientToFile(Patient p);
+void saveDoctorToFile(Doctor d);
+int findPatientByID(const char* id, Patient* foundPatient);
+void updatePatientRecord(Patient updatedPatient);
 
 int main() {
-    int choice;
-    char username[100], password[100];
-
-    while (1) {
-        printf("\n===================================\n");
-        printf("     WELCOME TO HEALWISH SYSTEM     \n");
-        printf("===================================\n");
-        printf("1. Admin Login\n");
-        printf("2. Doctor Login\n");
-        printf("3. Patient Login\n");
-        printf("4. Exit System\n");
-        printf("Enter your choice: ");
-        if (scanf("%d", &choice) != 1) {
-            printf("Invalid Input!\n");
-            exit(1);
-        }
-        getchar(); // Clear buffer
-
-        if (choice == 4) {
-            printf("\nExiting system. Wishing you a better life!...\n");
-            free(patients);
-            free(doctors);
-            break;
-        }
-
-        printf("Enter Username / Access ID: ");
-        fgets(username, sizeof(username), stdin);
-        username[strcspn(username, "\n")] = 0; 
-
-        printf("Enter Password: ");
-        fgets(password, sizeof(password), stdin);
-        password[strcspn(password, "\n")] = 0;
-
-        switch (choice) {
-            case 1: // USE CASE: LOGIN (ADMIN)
-                if (strcmp(username, "admin") == 0 && strcmp(password, "admin123") == 0) {
-                    printf("\nLogin Successful as Admin! Wishing you a better life.\n");
-                    adminMenu();
-                } else {
-                    printf("\nInvalid Admin Credentials!\n");
-                }
-                break;
-
-            case 2: // USE CASE: LOGIN (DOCTOR)
-                if (strcmp(password, "doctor123") == 0) {
-                    int found = -1;
-                    for (int i = 0; i < doctor_count; i++) {
-                        if (strcmp(doctors[i].id, username) == 0) {
-                            found = i;
-                            break;
-                        }
-                    }
-                    if (found != -1) {
-                        printf("\nLogin Successful! Welcome, %s. Wishing you a better life.\n", doctors[found].name);
-                        doctorMenu(doctors[found].id);
-                    } else {
-                        printf("\nDoctor ID not found! Create via Admin Panel first.\n");
-                    }
-                } else {
-                    printf("\nIncorrect Password!\n");
-                }
-                break;
-
-            case 3: // USE CASE: LOGIN (PATIENT)
-                if (strcmp(password, "patient123") == 0) {
-                    int found = -1;
-                    for (int i = 0; i < patient_count; i++) {
-                        if (strcmp(patients[i].id, username) == 0) {
-                            found = i;
-                            break;
-                        }
-                    }
-                    if (found != -1) {
-                        printf("\nLogin Successful! Welcome, %s. Wishing you a better life.\n", patients[found].name);
-                        patientMenu(patients[found].id);
-                    } else {
-                        printf("\nPatient ID not found! Admit via Admin Panel first.\n");
-                    }
-                } else {
-                    printf("\nIncorrect Password!\n");
-                }
-                break;
-
-            default:
-                printf("Invalid selection!\n");
-        }
-    }
+    mainMenu();
     return 0;
 }
 
-/* ==================== ADMIN DASHBOARD ==================== */
-void adminMenu() {
+// --- MENUS & INTERFACES ---
+
+void mainMenu() {
     int choice;
-    while (1) {
-        printf("\n--- ADMIN PANEL ---\n");
-        printf("1. Add / Update Patient Record\n");
-        printf("2. Delete Patient Record\n");
-        printf("3. Search Patient Record\n");
-        printf("4. Add Doctor Information\n");
-        printf("5. Generate System Report\n");
-        printf("6. Logout\n"); 
+    while(1) {
+        printf("\n=============================================\n");
+        printf("      HEALTHCARE MANAGEMENT SYSTEM (C)       \n");
+        printf("=============================================\n");
+        printf("1. Admin Portal\n");
+        printf("2. Doctor Portal\n");
+        printf("3. Patient Portal\n");
+        printf("4. Exit System\n");
+        printf("---------------------------------------------\n");
         printf("Enter choice: ");
-        if (scanf("%d", &choice) != 1) {
-            printf("Invalid Option.\n");
-            getchar();
-            continue;
-        }
-        getchar();
+        scanf("%d", &choice);
+        getchar(); // Clear buffer
 
-        if (choice == 6) {
-            printf("\nLogging out of Admin Panel... Wishing you a better life.\n");
-            break;
-        }
-
-        switch (choice) {
-            case 1: updatePatientRecord(); break;
-            case 2: deletePatientRecord(); break;
-            case 3: searchPatientRecord(); break;
-            case 4: addDoctorInformation(); break;
-            case 5: generateReport(); break;
-            default: printf("Invalid option.\n");
+        switch(choice) {
+            case 1: adminMenu(); break;
+            case 2: doctorMenu(); break;
+            case 3: patientMenu(); break;
+            case 4:
+                printf("\nExiting system securely. Goodbye!\n");
+                exit(0);
+            default: printf("\nInvalid choice! Try again.\n");
         }
     }
 }
 
-void updatePatientRecord() {
-    char id[50];
-    printf("Enter Patient ID to Add/Update: ");
-    fgets(id, sizeof(id), stdin);
-    id[strcspn(id, "\n")] = 0;
+void adminMenu() {
+    char username[20], password[20];
+    printf("\n--- Admin Authentication ---\n");
+    printf("Username: ");
+    scanf("%s", username);
+    printf("Password: ");
+    scanf("%s", password);
 
-    int index = -1;
-    for (int i = 0; i < patient_count; i++) {
-        if (strcmp(patients[i].id, id) == 0) {
-            index = i;
-            break;
+    // Basic hardcoded security check as per specifications
+    if (strcmp(username, "admin") != 0 || strcmp(password, "admin123") != 0) {
+        printf("\nAccess Denied! Invalid credentials.\n");
+        return;
+    }
+
+    int choice;
+    while(1) {
+        printf("\n=============================================\n");
+        printf("                ADMIN DASHBOARD              \n");
+        printf("=============================================\n");
+        printf("1. Add New Patient Record\n");
+        printf("2. View All Patient Records\n");
+        printf("3. Search Patient by ID\n");
+        printf("4. Delete Patient Record\n");
+        printf("5. Add New Doctor Profile\n");
+        printf("6. View Active Doctor List\n");
+        printf("7. Return to Main Menu (Logout)\n");
+        printf("---------------------------------------------\n");
+        printf("Enter operational choice: ");
+        scanf("%d", &choice);
+        getchar();
+
+        switch(choice) {
+            case 1: addPatient(); break;
+            case 2: viewPatients(); break;
+            case 3: searchPatient(); break;
+            case 4: deletePatient(); break;
+            case 5: addDoctor(); break;
+            case 6: viewDoctors(); break;
+            case 7: return;
+            default: printf("\nInvalid assignment option.\n");
         }
     }
+}
 
-    if (index > -1) {
-        printf("Updating Existing Patient Record...\n");
-    } else {
-        patient_count++;
-        patients = (Patient*)realloc(patients, patient_count * sizeof(Patient));
-        index = patient_count - 1;
-        strcpy(patients[index].id, id);
-        strcpy(patients[index].diagnosis, "Pending");
-        strcpy(patients[index].treatment_info, "Pending");
-        strcpy(patients[index].prescription, "None");
-        printf("Creating New Patient Record...\n");
-    }
-
-    printf("Enter Full Name: ");
-    fgets(patients[index].name, sizeof(patients[index].name), stdin);
-    patients[index].name[strcspn(patients[index].name, "\n")] = 0;
-
-    printf("Enter Age: ");
-    scanf("%d", &patients[index].age);
+void doctorMenu() {
+    char docName[50];
+    printf("\n--- Doctor Access Portal ---\n");
+    printf("Enter Your Last Name (e.g., 'Dr.Smith'): ");
+    scanf("%s", docName);
     getchar();
 
-    printf("Enter Symptoms / Problems: ");
-    fgets(patients[index].symptom, sizeof(patients[index].symptom), stdin);
-    patients[index].symptom[strcspn(patients[index].symptom, "\n")] = 0;
+    int choice;
+    while(1) {
+        printf("\n=============================================\n");
+        printf("         MEDICAL CONSOLE: %s         \n", docName);
+        printf("=============================================\n");
+        printf("1. Evaluate Patient (Add Diagnosis / Prescription)\n");
+        printf("2. View a Patient's Complete Medical History\n");
+        printf("3. Return to Main Menu (Logout)\n");
+        printf("---------------------------------------------\n");
+        printf("Enter choice: ");
+        scanf("%d", &choice);
+        getchar();
 
-    printf("Enter Assigned Doctor Name: ");
-    fgets(patients[index].assigned_doctor, sizeof(patients[index].assigned_doctor), stdin);
-    patients[index].assigned_doctor[strcspn(patients[index].assigned_doctor, "\n")] = 0;
-
-    printf("Enter Appointment Date & Time: ");
-    fgets(patients[index].appointment_datetime, sizeof(patients[index].appointment_datetime), stdin);
-    patients[index].appointment_datetime[strcspn(patients[index].appointment_datetime, "\n")] = 0;
-
-    printf("Patient Record Saved Successfully!\n");
-}
-
-void deletePatientRecord() {
-    char id[50];
-    printf("Enter Patient ID to delete: ");
-    fgets(id, sizeof(id), stdin);
-    id[strcspn(id, "\n")] = 0;
-
-    int found = -1;
-    for (int i = 0; i < patient_count; i++) {
-        if (strcmp(patients[i].id, id) == 0) {
-            found = i;
-            break;
+        switch(choice) {
+            case 1: doctorConsultation(); break;
+            case 2: viewPatientHistory(); break;
+            case 3: return;
+            default: printf("\nInvalid choice.\n");
         }
     }
+}
 
-    if (found != -1) {
-        for (int i = found; i < patient_count - 1; i++) {
-            patients[i] = patients[i + 1];
-        }
-        patient_count--;
-        if (patient_count > 0) {
-            patients = (Patient*)realloc(patients, patient_count * sizeof(Patient));
-        } else {
-            free(patients);
-            patients = NULL;
-        }
-        printf("Patient record deleted successfully.\n");
+void patientMenu() {
+    char patID[20];
+    Patient p;
+    printf("\n--- Patient Medical Portal ---\n");
+    printf("Enter Your Patient ID: ");
+    scanf("%s", patID);
+    getchar();
+
+    if (findPatientByID(patID, &p)) {
+        printf("\n=============================================\n");
+        printf("         YOUR PERSONAL MEDICAL FILE          \n");
+        printf("=============================================\n");
+        printf("Patient ID Reference:  %s\n", p.id);
+        printf("Full Name:             %s\n", p.name);
+        printf("Age:                   %s\n", p.age);
+        printf("Primary Complaint:     %s\n", p.disease);
+        printf("Assigned Consultant:   %s\n", p.doctor);
+        printf("---------------------------------------------\n");
+        printf("Clinical Diagnosis:    %s\n", p.diagnosis);
+        printf("Treatment Plan:        %s\n", p.treatment);
+        printf("Active Prescriptions:  %s\n", p.prescription);
+        printf("=============================================\n");
     } else {
-        printf("Record not found.\n");
+        printf("\nNo record found tracking that Patient ID.\n");
+    }
+    printf("\nPress Enter to return to main menu...");
+    getchar();
+}
+
+// --- CORE ENGINE & FILE LOGIC ---
+
+void addPatient() {
+    Patient p;
+    printf("\n--- Create Patient Record ---\n");
+    printf("Enter Patient ID: ");
+    scanf("%s", p.id);
+    getchar();
+    printf("Enter Full Name: ");
+    fgets(p.name, sizeof(p.name), stdin); p.name[strcspn(p.name, "\n")] = 0;
+    printf("Enter Age: ");
+    scanf("%s", p.age);
+    getchar();
+    printf("Enter Primary Disease/Symptom: ");
+    fgets(p.disease, sizeof(p.disease), stdin); p.disease[strcspn(p.disease, "\n")] = 0;
+    printf("Assign Doctor Name: ");
+    fgets(p.doctor, sizeof(p.doctor), stdin); p.doctor[strcspn(p.doctor, "\n")] = 0;
+
+    // Initialize empty treatment fields
+    strcpy(p.diagnosis, "Awaiting Evaluation");
+    strcpy(p.treatment, "Under Review");
+    strcpy(p.prescription, "None");
+
+    savePatientToFile(p);
+    printf("\nPatient record saved successfully data stream.\n");
+}
+
+void viewPatients() {
+    FILE *file = fopen(DATA_FILE, "r");
+    if (!file) {
+        printf("\nNo patient records data file found.\n");
+        return;
+    }
+
+    char line[500];
+    printf("\n%-10s %-20s %-5s %-20s %-20s\n", "ID", "Name", "Age", "Disease", "Assigned Doctor");
+    printf("--------------------------------------------------------------------------------\n");
+
+    while (fgets(line, sizeof(line), file)) {
+        if (strncmp(line, "PATIENT:", 8) == 0) {
+            Patient p;
+            sscanf(line, "PATIENT:%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^\n]",
+                   p.id, p.name, p.age, p.disease, p.doctor, p.diagnosis, p.treatment, p.prescription);
+            printf("%-10s %-20s %-5s %-20s %-20s\n", p.id, p.name, p.age, p.disease, p.doctor);
+        }
+    }
+    fclose(file);
+}
+
+void searchPatient() {
+    char id[20];
+    Patient p;
+    printf("\nEnter Patient ID to search: ");
+    scanf("%s", id);
+    getchar();
+
+    if (findPatientByID(id, &p)) {
+        printf("\nPatient Found:\n");
+        printf("ID: %s | Name: %s | Age: %s | Disease: %s | Doctor: %s\n", p.id, p.name, p.age, p.disease, p.doctor);
+    } else {
+        printf("\nPatient matching ID '%s' was not located.\n", id);
     }
 }
 
-void searchPatientRecord() {
-    char query[100];
-    printf("Enter Patient ID or Name to search: ");
-    fgets(query, sizeof(query), stdin);
-    query[strcspn(query, "\n")] = 0;
+void deletePatient() {
+    char id[20];
+    printf("\nEnter Patient ID to remove: ");
+    scanf("%s", id);
+    getchar();
 
+    FILE *file = fopen(DATA_FILE, "r");
+    if (!file) return;
+
+    FILE *tempFile = fopen("temp.txt", "w");
+    char line[500];
     int found = 0;
-    
-    // Print Table Header
-    printf("\n+--------------------+----------------------+-----+----------------------+\n");
-    printf("|%-20s|%-22s|%-5s|%-22s|\n", " Patient ID", " Name", " Age", " Assigned Doctor");
-    printf("+--------------------+----------------------+-----+----------------------+\n");
 
-    for (int i = 0; i < patient_count; i++) {
-        if (strstr(patients[i].id, query) || strstr(patients[i].name, query)) {
-            printf("| %-19s| %-21s| %-4d| %-21s|\n", 
-                   patients[i].id, patients[i].name, patients[i].age, patients[i].assigned_doctor);
-            found = 1;
+    while (fgets(line, sizeof(line), file)) {
+        if (strncmp(line, "PATIENT:", 8) == 0) {
+            Patient p;
+            sscanf(line, "PATIENT:%[^|]", p.id);
+            if (strcmp(p.id, id) == 0) {
+                found = 1;
+                continue; // Skip writing to copy file (Delete)
+            }
         }
+        fprintf(tempFile, "%s", line);
     }
-    printf("+--------------------+----------------------+-----+----------------------+\n");
-    
-    if (!found) printf("No records matched.\n");
+
+    fclose(file);
+    fclose(tempFile);
+
+    remove(DATA_FILE);
+    rename("temp.txt", DATA_FILE);
+
+    if (found) printf("\nPatient record removed safely.\n");
+    else printf("\nRecord ID not found.\n");
 }
 
-void addDoctorInformation() {
-    doctor_count++;
-    doctors = (Doctor*)realloc(doctors, doctor_count * sizeof(Doctor));
-    int index = doctor_count - 1;
-
+void addDoctor() {
+    Doctor d;
+    printf("\n--- Register Doctor Profile ---\n");
     printf("Enter Doctor ID: ");
-    fgets(doctors[index].id, sizeof(doctors[index].id), stdin);
-    doctors[index].id[strcspn(doctors[index].id, "\n")] = 0;
+    scanf("%s", d.id);
+    getchar();
+    printf("Enter Doctor Name (Prefix with Dr.): ");
+    fgets(d.name, sizeof(d.name), stdin); d.name[strcspn(d.name, "\n")] = 0;
+    printf("Enter Area of Specialty: ");
+    fgets(d.specialty, sizeof(d.specialty), stdin); d.specialty[strcspn(d.specialty, "\n")] = 0;
 
-    printf("Enter Doctor Name: ");
-    fgets(doctors[index].name, sizeof(doctors[index].name), stdin);
-    doctors[index].name[strcspn(doctors[index].name, "\n")] = 0;
-
-    printf("Enter Degrees (e.g., MBBS, FCPS): ");
-    fgets(doctors[index].degree, sizeof(doctors[index].degree), stdin);
-    doctors[index].degree[strcspn(doctors[index].degree, "\n")] = 0;
-
-    printf("Enter Medical College Name: ");
-    fgets(doctors[index].medical_college, sizeof(doctors[index].medical_college), stdin);
-    doctors[index].medical_college[strcspn(doctors[index].medical_college, "\n")] = 0;
-
-    printf("Enter Specialty: ");
-    fgets(doctors[index].specialty, sizeof(doctors[index].specialty), stdin);
-    doctors[index].specialty[strcspn(doctors[index].specialty, "\n")] = 0;
-
-    printf("Doctor Profile Saved!\n");
+    saveDoctorToFile(d);
+    printf("\nDoctor profile appended to database.\n");
 }
 
-void generateReport() {
-    printf("\n+=============================================+\n");
-    printf("|         HEALWISH SYSTEM SYSTEM REPORT       |\n");
-    printf("+=============================================+\n");
-    printf("| Total Active Patients in Database:  %-7d |\n", patient_count);
-    printf("| Total Registered Doctors in Database: %-6d |\n", doctor_count);
-    printf("+---------------------------------------------+\n");
-}
-
-/* ==================== DOCTOR DASHBOARD ==================== */
-void doctorMenu(char* doc_id) {
-    int choice;
-    char target_pid[50];
-    char doc_name[100] = "";
-
-    for(int i = 0; i < doctor_count; i++) {
-        if(strcmp(doctors[i].id, doc_id) == 0) {
-            strcpy(doc_name, doctors[i].name);
-        }
+void viewDoctors() {
+    FILE *file = fopen(DATA_FILE, "r");
+    if (!file) {
+        printf("\nNo active healthcare providers registry discovered.\n");
+        return;
     }
 
-    while (1) {
-        printf("\n--- DOCTOR PORTAL ---\n");
-        printf("1. View Patient Queue & History\n");
-        printf("2. Conduct Examination (Diagnosis/Treatment/Prescription)\n");
-        printf("3. Logout\n"); 
-        printf("Enter choice: ");
-        scanf("%d", &choice);
-        getchar();
+    char line[500];
+    printf("\n%-10s %-20s %-20s\n", "Doc ID", "Name", "Specialty");
+    printf("----------------------------------------------------------\n");
 
-        if (choice == 3) {
-            printf("\nLogging out of Doctor Portal... Wishing you a better life.\n");
-            break;
+    while (fgets(line, sizeof(line), file)) {
+        if (strncmp(line, "DOCTOR:", 7) == 0) {
+            Doctor d;
+            sscanf(line, "DOCTOR:%[^|]|%[^|]|%[^\n]", d.id, d.name, d.specialty);
+            printf("%-10s %-20s %-20s\n", d.id, d.name, d.specialty);
         }
+    }
+    fclose(file);
+}
 
-        if (choice == 1) { 
-            int matches = 0;
-            printf("\n+--------------------+----------------------+----------------------+----------------------+\n");
-            printf("|%-20s|%-22s|%-22s|%-22s|\n", " Patient ID", " Name", " Symptom", " Diagnosis Status");
-            printf("+--------------------+----------------------+----------------------+----------------------+\n");
+void doctorConsultation() {
+    char id[20];
+    Patient p;
+    printf("\nEnter Patient ID to consult: ");
+    scanf("%s", id);
+    getchar();
 
-            for (int i = 0; i < patient_count; i++) {
-                if (strcmp(patients[i].assigned_doctor, doc_name) == 0) {
-                    printf("| %-19s| %-21s| %-21s| %-21s|\n", 
-                           patients[i].id, patients[i].name, patients[i].symptom, patients[i].diagnosis);
-                    matches++;
-                }
-            }
-            printf("+--------------------+----------------------+----------------------+----------------------+\n");
-            if(matches == 0) printf("No patients assigned to your name yet.\n");
-        } 
-        else if (choice == 2) {
-            printf("Enter Patient ID to examine: ");
-            fgets(target_pid, sizeof(target_pid), stdin);
-            target_pid[strcspn(target_pid, "\n")] = 0;
+    if (findPatientByID(id, &p)) {
+        printf("\nCurrent Chart Conditions: %s\n", p.disease);
+        printf("Enter Clinical Diagnosis Updates: ");
+        fgets(p.diagnosis, sizeof(p.diagnosis), stdin); p.diagnosis[strcspn(p.diagnosis, "\n")] = 0;
+        printf("Enter Treatment Regimen Instructions: ");
+        fgets(p.treatment, sizeof(p.treatment), stdin); p.treatment[strcspn(p.treatment, "\n")] = 0;
+        printf("Issue Prescription Orders: ");
+        fgets(p.prescription, sizeof(p.prescription), stdin); p.prescription[strcspn(p.prescription, "\n")] = 0;
 
-            int idx = -1;
-            for (int i = 0; i < patient_count; i++) {
-                if (strcmp(patients[i].id, target_pid) == 0 && strcmp(patients[i].assigned_doctor, doc_name) == 0) {
-                    idx = i;
-                    break;
-                }
-            }
-
-            if (idx != -1) {
-                printf("Record Diagnosis: ");
-                fgets(patients[idx].diagnosis, sizeof(patients[idx].diagnosis), stdin);
-                patients[idx].diagnosis[strcspn(patients[idx].diagnosis, "\n")] = 0;
-
-                printf("Record Treatment Info: ");
-                fgets(patients[idx].treatment_info, sizeof(patients[idx].treatment_info), stdin);
-                patients[idx].treatment_info[strcspn(patients[idx].treatment_info, "\n")] = 0;
-
-                printf("Add Prescription: ");
-                fgets(patients[idx].prescription, sizeof(patients[idx].prescription), stdin);
-                patients[idx].prescription[strcspn(patients[idx].prescription, "\n")] = 0;
-
-                printf("Clinical updates saved successfully.\n");
-            } else {
-                printf("Access Denied or Patient ID not found in your assigned queue.\n");
-            }
-        }
+        updatePatientRecord(p);
+        printf("\nPatient treatment updates committed.\n");
+    } else {
+        printf("\nTarget patient not found.\n");
     }
 }
 
-/* ==================== PATIENT DASHBOARD ==================== */
-void patientMenu(char* pat_id) {
-    int choice;
-    int idx = -1;
-    for (int i = 0; i < patient_count; i++) {
-        if (strcmp(patients[i].id, pat_id) == 0) {
-            idx = i;
-            break;
-        }
+void viewPatientHistory() {
+    char id[20];
+    Patient p;
+    printf("\nEnter Patient ID: ");
+    scanf("%s", id);
+    getchar();
+
+    if (findPatientByID(id, &p)) {
+        printf("\n--- Historical Log: %s ---\n", p.name);
+        printf("Diagnosis: %s\n", p.diagnosis);
+        printf("Treatment History: %s\n", p.treatment);
+        printf("Prescriptions Provided: %s\n", p.prescription);
+    } else {
+        printf("\nRecord missing.\n");
     }
+}
 
-    while (1) {
-        printf("\n--- PATIENT PORTAL ---\n");
-        printf("1. View Own Information\n");
-        printf("2. View Assigned Doctor Details\n");
-        printf("3. View Appointment Information\n");
-        printf("4. View Treatment History & Prescription\n");
-        printf("5. Logout\n"); 
-        printf("Enter choice: ");
-        scanf("%d", &choice);
-        getchar();
+// --- FILE STREAM HELPERS ---
 
-        if (choice == 5) {
-            printf("\nLogging out of Patient Portal... Wishing you a better life.\n");
-            break;
-        }
+void savePatientToFile(Patient p) {
+    FILE *file = fopen(DATA_FILE, "a");
+    if (file) {
+        fprintf(file, "PATIENT:%s|%s|%s|%s|%s|%s|%s|%s\n",
+                p.id, p.name, p.age, p.disease, p.doctor, p.diagnosis, p.treatment, p.prescription);
+        fclose(file);
+    }
+}
 
-        switch (choice) {
-            case 1: 
-                printf("\n+----------------------------------------------------+\n");
-                printf("|                  MY PROFILE DETAILS                |\n");
-                printf("+----------------------------------------------------+\n");
-                printf("| Patient ID : %-37s |\n", patients[idx].id);
-                printf("| Full Name  : %-37s |\n", patients[idx].name);
-                printf("| Age        : %-37d |\n", patients[idx].age);
-                printf("+----------------------------------------------------+\n");
-                break;
-            case 2: {
-                int doc_idx = -1;
-                // Try searching for the doctor object based on the patient's record value
-                for(int i = 0; i < doctor_count; i++) {
-                    if(strcmp(doctors[i].name, patients[idx].assigned_doctor) == 0) {
-                        doc_idx = i;
-                        break;
-                    }
-                }
+void saveDoctorToFile(Doctor d) {
+    FILE *file = fopen(DATA_FILE, "a");
+    if (file) {
+        fprintf(file, "DOCTOR:%s|%s|%s\n", d.id, d.name, d.specialty);
+        fclose(file);
+    }
+}
 
-                printf("\n+----------------------------------------------------+\n");
-                printf("|              ASSIGNED DOCTOR DETAILS               |\n");
-                printf("+----------------------------------------------------+\n");
-                if (doc_idx != -1) {
-                    printf("| Doctor Name    : %-33s |\n", doctors[doc_idx].name);
-                    printf("| Degree(s)      : %-33s |\n", doctors[doc_idx].degree);
-                    printf("| Medical College: %-33s |\n", doctors[doc_idx].medical_college);
-                    printf("| Specialty      : %-33s |\n", doctors[doc_idx].specialty);
-                } else {
-                    printf("| Doctor Name    : %-33s |\n", patients[idx].assigned_doctor);
-                    printf("| Detailed info not added by admin yet.              |\n");
-                }
-                printf("+----------------------------------------------------+\n");
+int findPatientByID(const char* id, Patient* foundPatient) {
+    FILE *file = fopen(DATA_FILE, "r");
+    if (!file) return 0;
+
+    char line[500];
+    int success = 0;
+
+    while (fgets(line, sizeof(line), file)) {
+        if (strncmp(line, "PATIENT:", 8) == 0) {
+            Patient p;
+            sscanf(line, "PATIENT:%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^|]|%[^\n]",
+                   p.id, p.name, p.age, p.disease, p.doctor, p.diagnosis, p.treatment, p.prescription);
+            if (strcmp(p.id, id) == 0) {
+                *foundPatient = p;
+                success = 1;
                 break;
             }
-            case 3: 
-                printf("\n+----------------------------------------------------+\n");
-                printf("|              APPOINTMENT INFORMATION               |\n");
-                printf("+----------------------------------------------------+\n");
-                printf("| Schedule: %-40s |\n", patients[idx].appointment_datetime);
-                printf("+----------------------------------------------------+\n");
-                break;
-            case 4: 
-                printf("\n+----------------------------------------------------+\n");
-                printf("|             HEALTH SUMMARY & TREATMENT             |\n");
-                printf("+----------------------------------------------------+\n");
-                printf("| Reported Symptoms: %-31s |\n", patients[idx].symptom);
-                printf("| Diagnosis Result : %-31s |\n", patients[idx].diagnosis);
-                printf("| Treatment Info   : %-31s |\n", patients[idx].treatment_info);
-                printf("| Rx / Prescription: %-31s |\n", patients[idx].prescription);
-                printf("+----------------------------------------------------+\n");
-                break;
-            default:
-                printf("Invalid option.\n");
         }
     }
+    fclose(file);
+    return success;
+}
+
+void updatePatientRecord(Patient updatedPatient) {
+    FILE *file = fopen(DATA_FILE, "r");
+    if (!file) return;
+
+    FILE *tempFile = fopen("temp.txt", "w");
+    char line[500];
+
+    while (fgets(line, sizeof(line), file)) {
+        if (strncmp(line, "PATIENT:", 8) == 0) {
+            Patient p;
+            sscanf(line, "PATIENT:%[^|]", p.id);
+            if (strcmp(p.id, updatedPatient.id) == 0) {
+                fprintf(tempFile, "PATIENT:%s|%s|%s|%s|%s|%s|%s|%s\n",
+                        updatedPatient.id, updatedPatient.name, updatedPatient.age,
+                        updatedPatient.disease, updatedPatient.doctor, updatedPatient.diagnosis,
+                        updatedPatient.treatment, updatedPatient.prescription);
+                continue;
+            }
+        }
+        fprintf(tempFile, "%s", line);
+    }
+    fclose(file);
+    fclose(tempFile);
+
+    remove(DATA_FILE);
+    rename("temp.txt", DATA_FILE);
 }
