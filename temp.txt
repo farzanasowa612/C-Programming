@@ -1,4 +1,4 @@
-PATIENT:01|Nayeem|31|Anxiety,depression|Dr.Atoshi|Awaiting Evaluation|Under Review|None
+PATIENT:01|Nayeem|31|Anxiety,depression|Dr.Atoshi|severity tracking|Sertraline 50mg daily|None
 PATIENT:02|Jaima|20|Fever|Dr.Tushar|Awaiting Evaluation|Under Review|None
 PATIENT:03|Nowshin|27|Trauma-Related problem|Dr.Atoshi|Awaiting Evaluation|Under Review|None
 PATIENT:04|Jim |33|Angina|Dr.Mithila|Awaiting Evaluation|Under Review|None
