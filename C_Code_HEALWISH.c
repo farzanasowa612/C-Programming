@@ -6,8 +6,8 @@
 typedef struct {
     char id[50];
     char name[100];
-    char degree[100];          // Added Field
-    char medical_college[150];  // Added Field
+    char degree[100];         
+    char medical_college[150]; 
     char specialty[100];
 } Doctor;
 
@@ -33,10 +33,10 @@ int doctor_count = 0;
 void adminMenu();
 void doctorMenu(char* doc_id);
 void patientMenu(char* pat_id);
-void updatePatientRecord();
+void addPatientRecord();
 void deletePatientRecord();
-void searchPatientRecord();
 void addDoctorInformation();
+void deleteDoctorInformation();
 void generateReport();
 
 int main() {
@@ -135,10 +135,10 @@ void adminMenu() {
     int choice;
     while (1) {
         printf("\n--- ADMIN PANEL ---\n");
-        printf("1. Add / Update Patient Record\n");
+        printf("1. Add Patient Record\n");
         printf("2. Delete Patient Record\n");
-        printf("3. Search Patient Record\n");
-        printf("4. Add Doctor Information\n");
+        printf("3. Add Doctor Information\n");
+        printf("4. Delete Doctor Information\n");
         printf("5. Generate System Report\n");
         printf("6. Logout\n"); 
         printf("Enter choice: ");
@@ -155,42 +155,38 @@ void adminMenu() {
         }
 
         switch (choice) {
-            case 1: updatePatientRecord(); break;
+            case 1: addPatientRecord(); break;
             case 2: deletePatientRecord(); break;
-            case 3: searchPatientRecord(); break;
-            case 4: addDoctorInformation(); break;
+            case 3: addDoctorInformation(); break;
+            case 4: deleteDoctorInformation(); break;
             case 5: generateReport(); break;
             default: printf("Invalid option.\n");
         }
     }
 }
 
-void updatePatientRecord() {
+void addPatientRecord() {
     char id[50];
-    printf("Enter Patient ID to Add/Update: ");
+    printf("Enter New Patient ID: ");
     fgets(id, sizeof(id), stdin);
     id[strcspn(id, "\n")] = 0;
 
-    int index = -1;
+    // Check if Patient ID already exists
     for (int i = 0; i < patient_count; i++) {
         if (strcmp(patients[i].id, id) == 0) {
-            index = i;
-            break;
+            printf("Error: Patient ID already exists!\n");
+            return;
         }
     }
 
-    if (index > -1) {
-        printf("Updating Existing Patient Record...\n");
-    } else {
-        patient_count++;
-        patients = (Patient*)realloc(patients, patient_count * sizeof(Patient));
-        index = patient_count - 1;
-        strcpy(patients[index].id, id);
-        strcpy(patients[index].diagnosis, "Pending");
-        strcpy(patients[index].treatment_info, "Pending");
-        strcpy(patients[index].prescription, "None");
-        printf("Creating New Patient Record...\n");
-    }
+    patient_count++;
+    patients = (Patient*)realloc(patients, patient_count * sizeof(Patient));
+    int index = patient_count - 1;
+
+    strcpy(patients[index].id, id);
+    strcpy(patients[index].diagnosis, "Pending");
+    strcpy(patients[index].treatment_info, "Pending");
+    strcpy(patients[index].prescription, "None");
 
     printf("Enter Full Name: ");
     fgets(patients[index].name, sizeof(patients[index].name), stdin);
@@ -212,7 +208,7 @@ void updatePatientRecord() {
     fgets(patients[index].appointment_datetime, sizeof(patients[index].appointment_datetime), stdin);
     patients[index].appointment_datetime[strcspn(patients[index].appointment_datetime, "\n")] = 0;
 
-    printf("Patient Record Saved Successfully!\n");
+    printf("Patient Record Added Successfully!\n");
 }
 
 void deletePatientRecord() {
@@ -246,31 +242,6 @@ void deletePatientRecord() {
     }
 }
 
-void searchPatientRecord() {
-    char query[100];
-    printf("Enter Patient ID or Name to search: ");
-    fgets(query, sizeof(query), stdin);
-    query[strcspn(query, "\n")] = 0;
-
-    int found = 0;
-    
-    // Print Table Header
-    printf("\n+--------------------+----------------------+-----+----------------------+\n");
-    printf("|%-20s|%-22s|%-5s|%-22s|\n", " Patient ID", " Name", " Age", " Assigned Doctor");
-    printf("+--------------------+----------------------+-----+----------------------+\n");
-
-    for (int i = 0; i < patient_count; i++) {
-        if (strstr(patients[i].id, query) || strstr(patients[i].name, query)) {
-            printf("| %-19s| %-21s| %-4d| %-21s|\n", 
-                   patients[i].id, patients[i].name, patients[i].age, patients[i].assigned_doctor);
-            found = 1;
-        }
-    }
-    printf("+--------------------+----------------------+-----+----------------------+\n");
-    
-    if (!found) printf("No records matched.\n");
-}
-
 void addDoctorInformation() {
     doctor_count++;
     doctors = (Doctor*)realloc(doctors, doctor_count * sizeof(Doctor));
@@ -299,13 +270,75 @@ void addDoctorInformation() {
     printf("Doctor Profile Saved!\n");
 }
 
+void deleteDoctorInformation() {
+    char id[50];
+    printf("Enter Doctor ID to delete: ");
+    fgets(id, sizeof(id), stdin);
+    id[strcspn(id, "\n")] = 0;
+
+    int found = -1;
+    for (int i = 0; i < doctor_count; i++) {
+        if (strcmp(doctors[i].id, id) == 0) {
+            found = i;
+            break;
+        }
+    }
+
+    if (found != -1) {
+        for (int i = found; i < doctor_count - 1; i++) {
+            doctors[i] = doctors[i + 1];
+        }
+        doctor_count--;
+        if (doctor_count > 0) {
+            doctors = (Doctor*)realloc(doctors, doctor_count * sizeof(Doctor));
+        } else {
+            free(doctors);
+            doctors = NULL;
+        }
+        printf("Doctor record deleted successfully.\n");
+    } else {
+        printf("Doctor ID not found.\n");
+    }
+}
+
 void generateReport() {
-    printf("\n+=============================================+\n");
-    printf("|         HEALWISH SYSTEM SYSTEM REPORT       |\n");
-    printf("+=============================================+\n");
-    printf("| Total Active Patients in Database:  %-7d |\n", patient_count);
-    printf("| Total Registered Doctors in Database: %-6d |\n", doctor_count);
-    printf("+---------------------------------------------+\n");
+    printf("\n========================================================================================\n");
+    printf("                             HEALWISH SYSTEM SYSTEM REPORT                              \n");
+    printf("========================================================================================\n");
+    printf("  Total Registered Doctors in Database : %d\n", doctor_count);
+    printf("  Total Active Patients in Database   : %d\n", patient_count);
+    printf("----------------------------------------------------------------------------------------\n");
+
+    // LIST OF DOCTORS
+    printf("\n--- REGISTERED DOCTORS LIST ---\n");
+    if (doctor_count == 0) {
+        printf("No doctors registered in the system.\n");
+    } else {
+        printf("+--------------------+----------------------+----------------------+------------------------------+\n");
+        printf("| %-18s | %-20s | %-20s | %-28s |\n", "Doctor ID", "Doctor Name", "Specialty", "Medical College");
+        printf("+--------------------+----------------------+----------------------+------------------------------+\n");
+        for (int i = 0; i < doctor_count; i++) {
+            printf("| %-18s | %-20s | %-20s | %-28s |\n", 
+                   doctors[i].id, doctors[i].name, doctors[i].specialty, doctors[i].medical_college);
+        }
+        printf("+--------------------+----------------------+----------------------+------------------------------+\n");
+    }
+
+    // LIST OF PATIENTS
+    printf("\n--- ACTIVE PATIENTS LIST ---\n");
+    if (patient_count == 0) {
+        printf("No patients registered in the system.\n");
+    } else {
+        printf("+--------------------+----------------------+-----+----------------------+\n");
+        printf("| %-18s | %-20s | %-3s | %-20s |\n", "Patient ID", "Patient Name", "Age", "Assigned Doctor");
+        printf("+--------------------+----------------------+-----+----------------------+\n");
+        for (int i = 0; i < patient_count; i++) {
+            printf("| %-18s | %-20s | %-3d | %-20s |\n", 
+                   patients[i].id, patients[i].name, patients[i].age, patients[i].assigned_doctor);
+        }
+        printf("+--------------------+----------------------+-----+----------------------+\n");
+    }
+    printf("\n========================================================================================\n");
 }
 
 /* ==================== DOCTOR DASHBOARD ==================== */
@@ -423,7 +456,6 @@ void patientMenu(char* pat_id) {
                 break;
             case 2: {
                 int doc_idx = -1;
-                // Try searching for the doctor object based on the patient's record value
                 for(int i = 0; i < doctor_count; i++) {
                     if(strcmp(doctors[i].name, patients[idx].assigned_doctor) == 0) {
                         doc_idx = i;
@@ -432,7 +464,7 @@ void patientMenu(char* pat_id) {
                 }
 
                 printf("\n+----------------------------------------------------+\n");
-                printf("|              ASSIGNED DOCTOR DETAILS               |\n");
+                printf("|               ASSIGNED DOCTOR DETAILS              |\n");
                 printf("+----------------------------------------------------+\n");
                 if (doc_idx != -1) {
                     printf("| Doctor Name    : %-33s |\n", doctors[doc_idx].name);
@@ -448,14 +480,14 @@ void patientMenu(char* pat_id) {
             }
             case 3: 
                 printf("\n+----------------------------------------------------+\n");
-                printf("|              APPOINTMENT INFORMATION               |\n");
+                printf("|               APPOINTMENT INFORMATION              |\n");
                 printf("+----------------------------------------------------+\n");
                 printf("| Schedule: %-40s |\n", patients[idx].appointment_datetime);
                 printf("+----------------------------------------------------+\n");
                 break;
             case 4: 
                 printf("\n+----------------------------------------------------+\n");
-                printf("|             HEALTH SUMMARY & TREATMENT             |\n");
+                printf("|         HEALTH SUMMARY & TREATMENT                 |\n");
                 printf("+----------------------------------------------------+\n");
                 printf("| Reported Symptoms: %-31s |\n", patients[idx].symptom);
                 printf("| Diagnosis Result : %-31s |\n", patients[idx].diagnosis);
