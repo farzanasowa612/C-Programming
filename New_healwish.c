@@ -162,14 +162,12 @@ void adminMenu() {
         printf("\n--- ADMIN PANEL ---\n");
         printf("1. Add Patient Record (Includes Doctor Assignment & OT Details)\n");
         printf("2. Delete Patient Record\n");
-        printf("3. Search Patient Record\n");
-        printf("4. Add Doctor Information\n");
-        printf("5. Delete Doctor Information\n");
-        printf("6. Search Doctor Record\n");
-        printf("7. Receive Patient Payment\n");
-        printf("8. Disburse Doctor Payment/Salary\n");
-        printf("9. Generate System Report\n");
-        printf("10. Logout\n"); 
+        printf("3. Add Doctor Information\n");
+        printf("4. Delete Doctor Information\n");
+        printf("5. Receive Patient Payment\n");
+        printf("6. Distribute Doctor Payment/Salary\n");
+        printf("7. Generate System Report\n");
+        printf("8. Logout\n"); 
         printf("Enter choice: ");
         if (scanf("%d", &choice) != 1) {
             printf("Invalid Option.\n");
@@ -186,7 +184,6 @@ void adminMenu() {
         switch (choice) {
             case 1: addPatientRecord(); break;
             case 2: deletePatientRecord(); break;
-            case 3: searchPatientRecord(); break;
             case 4: addDoctorInformation(); break;
             case 5: deleteDoctorInformation(); break;
             case 6: searchDoctorRecord(); break;
