@@ -251,36 +251,6 @@ void addPatientRecord() {
     printf("Patient Record, Doctor Assignment & OT Details Saved Successfully!\n");
 }
 
-void deletePatientRecord() {
-    char id[50];
-    printf("Enter Patient ID to delete: ");
-    fgets(id, sizeof(id), stdin);
-    id[strcspn(id, "\n")] = 0;
-
-    int found = -1;
-    for (int i = 0; i < patient_count; i++) {
-        if (strcmp(patients[i].id, id) == 0) {
-            found = i;
-            break;
-        }
-    }
-
-    if (found != -1) {
-        for (int i = found; i < patient_count - 1; i++) {
-            patients[i] = patients[i + 1];
-        }
-        patient_count--;
-        if (patient_count > 0) {
-            patients = (Patient*)realloc(patients, patient_count * sizeof(Patient));
-        } else {
-            free(patients);
-            patients = NULL;
-        }
-        printf("Patient record deleted successfully.\n");
-    } else {
-        printf("Record not found.\n");
-    }
-}
 
 void addDoctorInformation() {
     doctor_count++;
@@ -312,36 +282,6 @@ void addDoctorInformation() {
     printf("Doctor Profile Saved!\n");
 }
 
-void deleteDoctorInformation() {
-    char id[50];
-    printf("Enter Doctor ID to Delete: ");
-    fgets(id, sizeof(id), stdin);
-    id[strcspn(id, "\n")] = 0;
-
-    int found = -1;
-    for (int i = 0; i < doctor_count; i++) {
-        if (strcmp(doctors[i].id, id) == 0) {
-            found = i;
-            break;
-        }
-    }
-
-    if (found != -1) {
-        for (int i = found; i < doctor_count - 1; i++) {
-            doctors[i] = doctors[i + 1];
-        }
-        doctor_count--;
-        if (doctor_count > 0) {
-            doctors = (Doctor*)realloc(doctors, doctor_count * sizeof(Doctor));
-        } else {
-            free(doctors);
-            doctors = NULL;
-        }
-        printf("Doctor record deleted successfully.\n");
-    } else {
-        printf("Doctor Record not found.\n");
-    }
-}
 
 void processPatientPaymentAdmin() {
     char id[50];
