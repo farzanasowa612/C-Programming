@@ -3,166 +3,25 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-/* ==================== MD5 IMPLEMENTATION ====================
- * Self-contained MD5 (RFC 1321) implementation, embedded directly so the
- * project compiles with a plain `gcc file.c -o output` (no -lcrypto/OpenSSL
- * needed). Used to hash passwords before storing/comparing them.
- * ============================================================== */
+// Secure Password Hashes (Pre-computed MD5)
+// admin123  -> 0192023a7bbd73250516f069df18b500
+// doctor123 -> 3f2dc2a51a89c92694b8e3a241ed497b
+// patient123-> 360155b95a8947b6a18836ec4ffc0a5e
 
-typedef struct {
-    uint64_t size;
-    uint32_t buffer[4];
-    uint8_t  input[64];
-    uint8_t  digest[16];
-} MD5Context;
-
-#define MD5_A 0x67452301
-#define MD5_B 0xefcdab89
-#define MD5_C 0x98badcfe
-#define MD5_D 0x10325476
-
-static const uint32_t md5_S[] = {
-    7,12,17,22, 7,12,17,22, 7,12,17,22, 7,12,17,22,
-    5, 9,14,20, 5, 9,14,20, 5, 9,14,20, 5, 9,14,20,
-    4,11,16,23, 4,11,16,23, 4,11,16,23, 4,11,16,23,
-    6,10,15,21, 6,10,15,21, 6,10,15,21, 6,10,15,21
-};
-
-static const uint32_t md5_K[] = {
-    0xd76aa478,0xe8c7b756,0x242070db,0xc1bdceee,
-    0xf57c0faf,0x4787c62a,0xa8304613,0xfd469501,
-    0x698098d8,0x8b44f7af,0xffff5bb1,0x895cd7be,
-    0x6b901122,0xfd987193,0xa679438e,0x49b40821,
-    0xf61e2562,0xc040b340,0x265e5a51,0xe9b6c7aa,
-    0xd62f105d,0x02441453,0xd8a1e681,0xe7d3fbc8,
-    0x21e1cde6,0xc33707d6,0xf4d50d87,0x455a14ed,
-    0xa9e3e905,0xfcefa3f8,0x676f02d9,0x8d2a4c8a,
-    0xfffa3942,0x8771f681,0x6d9d6122,0xfde5380c,
-    0xa4beea44,0x4bdecfa9,0xf6bb4b60,0xbebfbc70,
-    0x289b7ec6,0xeaa127fa,0xd4ef3085,0x04881d05,
-    0xd9d4d039,0xe6db99e5,0x1fa27cf8,0xc4ac5665,
-    0xf4292244,0x432aff97,0xab9423a7,0xfc93a039,
-    0x655b59c3,0x8f0ccc92,0xffeff47d,0x85845dd1,
-    0x6fa87e4f,0xfe2ce6e0,0xa3014314,0x4e0811a1,
-    0xf7537e82,0xbd3af235,0x2ad7d2bb,0xeb86d391
-};
-
-static const uint8_t md5_PADDING[64] = { 0x80 /* rest zero-initialized */ };
-
-#define MD5_F(X,Y,Z) ((X & Y) | (~X & Z))
-#define MD5_G(X,Y,Z) ((X & Z) | (Y & ~Z))
-#define MD5_H(X,Y,Z) (X ^ Y ^ Z)
-#define MD5_I(X,Y,Z) (Y ^ (X | ~Z))
-
-static uint32_t md5_rotateLeft(uint32_t x, uint32_t n) {
-    return (x << n) | (x >> (32 - n));
-}
-
-static void md5Step(uint32_t *buffer, uint32_t *input) {
-    uint32_t AA = buffer[0], BB = buffer[1], CC = buffer[2], DD = buffer[3];
-    uint32_t E; unsigned int j;
-
-    for (unsigned int i = 0; i < 64; ++i) {
-        switch (i / 16) {
-            case 0: E = MD5_F(BB, CC, DD); j = i; break;
-            case 1: E = MD5_G(BB, CC, DD); j = ((i * 5) + 1) % 16; break;
-            case 2: E = MD5_H(BB, CC, DD); j = ((i * 3) + 5) % 16; break;
-            default: E = MD5_I(BB, CC, DD); j = (i * 7) % 16; break;
-        }
-        uint32_t temp = DD;
-        DD = CC;
-        CC = BB;
-        BB = BB + md5_rotateLeft(AA + E + md5_K[i] + input[j], md5_S[i]);
-        AA = temp;
-    }
-
-    buffer[0] += AA; buffer[1] += BB; buffer[2] += CC; buffer[3] += DD;
-}
-
-static void md5Init(MD5Context *ctx) {
-    ctx->size = 0;
-    ctx->buffer[0] = MD5_A;
-    ctx->buffer[1] = MD5_B;
-    ctx->buffer[2] = MD5_C;
-    ctx->buffer[3] = MD5_D;
-}
-
-static void md5Update(MD5Context *ctx, const uint8_t *input_buffer, size_t input_len) {
-    uint32_t input[16];
-    unsigned int offset = ctx->size % 64;
-    ctx->size += (uint64_t)input_len;
-
-    for (unsigned int i = 0; i < input_len; ++i) {
-        ctx->input[offset++] = input_buffer[i];
-
-        if (offset % 64 == 0) {
-            for (unsigned int j = 0; j < 16; ++j) {
-                input[j] = (uint32_t)(ctx->input[(j*4)+3]) << 24 |
-                           (uint32_t)(ctx->input[(j*4)+2]) << 16 |
-                           (uint32_t)(ctx->input[(j*4)+1]) << 8  |
-                           (uint32_t)(ctx->input[(j*4)]);
-            }
-            md5Step(ctx->buffer, input);
-            offset = 0;
-        }
-    }
-}
-
-static void md5Finalize(MD5Context *ctx) {
-    uint32_t input[16];
-    unsigned int offset = ctx->size % 64;
-    unsigned int padding_length = offset < 56 ? 56 - offset : (56 + 64) - offset;
-
-    md5Update(ctx, md5_PADDING, padding_length);
-    ctx->size -= (uint64_t)padding_length;
-
-    for (unsigned int j = 0; j < 14; ++j) {
-        input[j] = (uint32_t)(ctx->input[(j*4)+3]) << 24 |
-                   (uint32_t)(ctx->input[(j*4)+2]) << 16 |
-                   (uint32_t)(ctx->input[(j*4)+1]) << 8  |
-                   (uint32_t)(ctx->input[(j*4)]);
-    }
-    input[14] = (uint32_t)(ctx->size * 8);
-    input[15] = (uint32_t)((ctx->size * 8) >> 32);
-
-    md5Step(ctx->buffer, input);
-
-    for (unsigned int i = 0; i < 4; ++i) {
-        ctx->digest[(i*4)+0] = (uint8_t)((ctx->buffer[i] & 0x000000FF));
-        ctx->digest[(i*4)+1] = (uint8_t)((ctx->buffer[i] & 0x0000FF00) >> 8);
-        ctx->digest[(i*4)+2] = (uint8_t)((ctx->buffer[i] & 0x00FF0000) >> 16);
-        ctx->digest[(i*4)+3] = (uint8_t)((ctx->buffer[i] & 0xFF000000) >> 24);
-    }
-}
-
-// Hashes a null-terminated string and writes a 32-char lowercase hex digest
-// (+ null terminator) into 'output_hex', which must be at least 33 bytes.
-void md5_hash(const char *input, char *output_hex) {
-    MD5Context ctx;
-    md5Init(&ctx);
-    md5Update(&ctx, (const uint8_t *)input, strlen(input));
-    md5Finalize(&ctx);
-
-    for (int i = 0; i < 16; i++) {
-        sprintf(output_hex + (i * 2), "%02x", ctx.digest[i]);
-    }
-    output_hex[32] = '\0';
-}
-/* ================== END MD5 IMPLEMENTATION =================== */
-
-// Hardcoded Admin credentials (password stored as MD5 hash, not plain text)
-#define ADMIN_USERNAME      "admin"
-#define ADMIN_PASSWORD_HASH "0192023a7bbd73250516f069df18b500" // MD5 of "admin123"
+const char* ADMIN_HASH = "0192023a7bbd73250516f069df18b500";
+const char* DOCTOR_HASH = "3f2dc2a51a89c92694b8e3a241ed497b";
+const char* PATIENT_HASH = "360155b95a8947b6a18836ec4ffc0a5e";
 
 // Structures
 typedef struct {
     char id[50];
     char name[100];
-    char degree[100];
-    char medical_college[150];
+    char degree[100];          
+    char medical_college[150];  
     char specialty[100];
-    double earnings;            // Accumulated total payment received
-    char password_hash[33];     // MD5 hash of the doctor's own login password
+    double earnings;            
+    char schedules[20][100];    // Doctor's available time slots
+    int schedule_count;
 } Doctor;
 
 typedef struct {
@@ -171,10 +30,10 @@ typedef struct {
     int age;
     char symptom[200];
     char assigned_doctor[100];
-    char appointment_datetime[100];
-    char ot_schedule[100];            // OT Details assigned by Admin
-    int is_cancelled;                 // 0 = Active, 1 = Cancelled by Doctor
-    char cancellation_reason[200];     // Reason recorded when cancelled
+    char appointment_datetime[100]; // Specific schedule assigned to patient
+    char ot_schedule[100];            
+    int is_cancelled;                 
+    char cancellation_reason[200];     
     char diagnosis[200];
     char treatment_info[200];
     char prescription[300];
@@ -182,7 +41,6 @@ typedef struct {
     double paid_amount;
     int doctor_rating;
     int system_rating;
-    char password_hash[33];     // MD5 hash of the patient's own login password
 } Patient;
 
 // Dynamic Pointer Arrays
@@ -195,19 +53,21 @@ int doctor_count = 0;
 void adminMenu();
 void doctorMenu(char* doc_id);
 void patientMenu(char* pat_id);
+int getIntInput();
+void computeMD5(const char* initial_msg, char* outputBuffer);
 
 // Admin Functions
 void addPatientRecord();
-void deletePatientRecord();
 void addDoctorInformation();
-void deleteDoctorInformation();
+void viewDoctorSchedulesAdmin();
+void assignDoctorToPatient();
 void processPatientPaymentAdmin();
 void processDoctorSalaryAdmin();
 void generateReport();
 
 // Doctor Functions
 void viewDoctorPayments(int doc_idx);
-void viewDoctorAssignedSchedule(int doc_idx);
+void makeDoctorSchedule(int doc_idx);
 void viewUpcomingOT(int doc_idx);
 void cancelDoctorSchedule(int doc_idx);
 
@@ -216,9 +76,97 @@ void viewDuesAndMakePayment(int pat_idx);
 void rateDoctorAndSystem(int idx);
 void viewCancellationStatus(int pat_idx);
 
+// Helper for secure integer input
+int getIntInput() {
+    char buffer[100];
+    if (fgets(buffer, sizeof(buffer), stdin) != NULL) {
+        return atoi(buffer);
+    }
+    return 0;
+}
+
+// ==================== NATIVE MD5 IMPLEMENTATION ====================
+#define LEFT_ROTATE(x, c) (((x) << (c)) | ((x) >> (32 - (c))))
+
+void computeMD5(const char *initial_msg, char *outputBuffer) {
+    size_t initial_len = strlen(initial_msg);
+    size_t padded_len = initial_len + 1;
+
+    // Calculate padding length so it ends at 56 bytes mod 64
+    while (padded_len % 64 != 56) {
+        padded_len++;
+    }
+
+    size_t total_len = padded_len + 8;
+    uint8_t *msg = (uint8_t *)calloc(total_len, 1);
+    memcpy(msg, initial_msg, initial_len);
+    msg[initial_len] = 0x80; // Append '1' bit
+
+    // Append length in bits (64-bit, little-endian)
+    uint64_t bits_len = (uint64_t)initial_len * 8;
+    for (int i = 0; i < 8; i++) {
+        msg[padded_len + i] = (uint8_t)(bits_len >> (i * 8));
+    }
+
+    // Initialize variables
+    uint32_t h0 = 0x67452301, h1 = 0xefcdab89, h2 = 0x98badcfe, h3 = 0x10325476;
+
+    uint32_t k[] = {
+        0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
+        0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be, 0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
+        0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa, 0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8,
+        0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed, 0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
+        0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c, 0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
+        0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05, 0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
+        0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039, 0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
+        0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
+    };
+    uint32_t r[] = {
+        7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
+        5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,
+        4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,
+        6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21
+    };
+
+    // Process blocks
+    for (size_t offset = 0; offset < total_len; offset += 64) {
+        uint32_t w[16];
+        for (int i = 0; i < 16; i++) { // Endian-safe conversion
+            w[i] = (uint32_t)msg[offset + i * 4] | ((uint32_t)msg[offset + i * 4 + 1] << 8) |
+                   ((uint32_t)msg[offset + i * 4 + 2] << 16) | ((uint32_t)msg[offset + i * 4 + 3] << 24);
+        }
+
+        uint32_t a = h0, b = h1, c = h2, d = h3;
+
+        for (uint32_t i = 0; i < 64; i++) {
+            uint32_t f, g;
+            if (i < 16) { f = (b & c) | ((~b) & d); g = i; } 
+            else if (i < 32) { f = (d & b) | ((~d) & c); g = (5 * i + 1) % 16; } 
+            else if (i < 48) { f = b ^ c ^ d; g = (3 * i + 5) % 16; } 
+            else { f = c ^ (b | (~d)); g = (7 * i) % 16; }
+
+            uint32_t temp = d;
+            d = c;
+            c = b;
+            b = b + LEFT_ROTATE((a + f + k[i] + w[g]), r[i]);
+            a = temp;
+        }
+        h0 += a; h1 += b; h2 += c; h3 += d;
+    }
+    free(msg);
+
+    // Format output to string safely
+    sprintf(outputBuffer, "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+            (uint8_t)(h0), (uint8_t)(h0 >> 8), (uint8_t)(h0 >> 16), (uint8_t)(h0 >> 24),
+            (uint8_t)(h1), (uint8_t)(h1 >> 8), (uint8_t)(h1 >> 16), (uint8_t)(h1 >> 24),
+            (uint8_t)(h2), (uint8_t)(h2 >> 8), (uint8_t)(h2 >> 16), (uint8_t)(h2 >> 24),
+            (uint8_t)(h3), (uint8_t)(h3 >> 8), (uint8_t)(h3 >> 16), (uint8_t)(h3 >> 24));
+}
+// ===================================================================
+
 int main() {
     int choice;
-    char username[100], password[100];
+    char username[100], password[100], hashed_password[33];
 
     while (1) {
         printf("\n===================================\n");
@@ -229,82 +177,79 @@ int main() {
         printf("3. Patient Login\n");
         printf("4. Exit System\n");
         printf("Enter your choice: ");
-        if (scanf("%d", &choice) != 1) {
-            printf("Invalid Input!\n");
-            exit(1);
-        }
-        getchar(); // Clear buffer
+        choice = getIntInput();
 
         if (choice == 4) {
-            printf("\nExiting system. Wishing you a better life! Freeing memory...\n");
+            printf("\nExiting system. Freeing memory...\n");
             free(patients);
             free(doctors);
             break;
         }
 
+        if (choice < 1 || choice > 4) {
+            printf("Invalid selection!\n");
+            continue;
+        }
+
         printf("Enter Username / Access ID: ");
         fgets(username, sizeof(username), stdin);
-        username[strcspn(username, "\n")] = 0;
+        username[strcspn(username, "\n")] = 0; 
 
         printf("Enter Password: ");
         fgets(password, sizeof(password), stdin);
         password[strcspn(password, "\n")] = 0;
 
-        // Hash whatever the user typed so it can be compared against
-        // the MD5 hashes stored for admin/doctors/patients.
-        char entered_hash[33];
-        md5_hash(password, entered_hash);
+        computeMD5(password, hashed_password);
 
         switch (choice) {
             case 1: // ADMIN LOGIN
-                if (strcmp(username, ADMIN_USERNAME) == 0 && strcmp(entered_hash, ADMIN_PASSWORD_HASH) == 0) {
-                    printf("\nLogin Successful as Admin! Wishing you a better life.\n");
+                if (strcmp(username, "admin") == 0 && strcmp(hashed_password, ADMIN_HASH) == 0) {
+                    printf("\nLogin Successful as Admin!\n");
                     adminMenu();
                 } else {
                     printf("\nInvalid Admin Credentials!\n");
                 }
                 break;
 
-            case 2: { // DOCTOR LOGIN
-                int found = -1;
-                for (int i = 0; i < doctor_count; i++) {
-                    if (strcmp(doctors[i].id, username) == 0) {
-                        found = i;
-                        break;
+            case 2: // DOCTOR LOGIN
+                if (strcmp(hashed_password, DOCTOR_HASH) == 0) {
+                    int found = -1;
+                    for (int i = 0; i < doctor_count; i++) {
+                        if (strcmp(doctors[i].id, username) == 0) {
+                            found = i;
+                            break;
+                        }
                     }
-                }
-                if (found == -1) {
-                    printf("\nDoctor ID not found! Create via Admin Panel first.\n");
-                } else if (strcmp(entered_hash, doctors[found].password_hash) == 0) {
-                    printf("\nLogin Successful! Welcome, %s. Wishing you a better life.\n", doctors[found].name);
-                    doctorMenu(doctors[found].id);
+                    if (found != -1) {
+                        printf("\nLogin Successful! Welcome, %s.\n", doctors[found].name);
+                        doctorMenu(doctors[found].id);
+                    } else {
+                        printf("\nDoctor ID not found! Admin must create profile first.\n");
+                    }
                 } else {
                     printf("\nIncorrect Password!\n");
                 }
                 break;
-            }
 
-            case 3: { // PATIENT LOGIN
-                int found = -1;
-                for (int i = 0; i < patient_count; i++) {
-                    if (strcmp(patients[i].id, username) == 0) {
-                        found = i;
-                        break;
+            case 3: // PATIENT LOGIN
+                if (strcmp(hashed_password, PATIENT_HASH) == 0) {
+                    int found = -1;
+                    for (int i = 0; i < patient_count; i++) {
+                        if (strcmp(patients[i].id, username) == 0) {
+                            found = i;
+                            break;
+                        }
                     }
-                }
-                if (found == -1) {
-                    printf("\nPatient ID not found! Admit via Admin Panel first.\n");
-                } else if (strcmp(entered_hash, patients[found].password_hash) == 0) {
-                    printf("\nLogin Successful! Welcome, %s. Wishing you a better life.\n", patients[found].name);
-                    patientMenu(patients[found].id);
+                    if (found != -1) {
+                        printf("\nLogin Successful! Welcome, %s.\n", patients[found].name);
+                        patientMenu(patients[found].id);
+                    } else {
+                        printf("\nPatient ID not found! Admin must admit patient first.\n");
+                    }
                 } else {
                     printf("\nIncorrect Password!\n");
                 }
                 break;
-            }
-
-            default:
-                printf("Invalid selection!\n");
         }
     }
     return 0;
@@ -315,31 +260,30 @@ void adminMenu() {
     int choice;
     while (1) {
         printf("\n--- ADMIN PANEL ---\n");
-        printf("1. Add Patient Record (Includes Doctor Assignment & OT Details)\n");
+        printf("1. Add Patient Record (Admission Only)\n");
         printf("2. Add Doctor Information\n");
-        printf("3. Receive Patient Payment\n");
-        printf("4. Disburse Doctor Payment/Salary\n");
-        printf("5. Generate System Report\n");
-        printf("6. Logout\n");
+        printf("3. View Doctor's Schedule\n");
+        printf("4. Assign Doctor & Schedule to a Patient\n");
+        printf("5. Receive Patient Payment\n");
+        printf("6. Disburse Doctor Payment/Salary\n");
+        printf("7. Generate System Report\n");
+        printf("8. Logout\n"); 
         printf("Enter choice: ");
-        if (scanf("%d", &choice) != 1) {
-            printf("Invalid Option.\n");
-            getchar();
-            continue;
-        }
-        getchar();
+        choice = getIntInput();
 
-        if (choice == 6) {
-            printf("\nLogging out of Admin Panel... Wishing you a better life.\n");
+        if (choice == 8) {
+            printf("\nLogging out of Admin Panel...\n");
             break;
         }
 
         switch (choice) {
             case 1: addPatientRecord(); break;
             case 2: addDoctorInformation(); break;
-            case 3: processPatientPaymentAdmin(); break;
-            case 4: processDoctorSalaryAdmin(); break;
-            case 5: generateReport(); break;
+            case 3: viewDoctorSchedulesAdmin(); break;
+            case 4: assignDoctorToPatient(); break;
+            case 5: processPatientPaymentAdmin(); break;
+            case 6: processDoctorSalaryAdmin(); break;
+            case 7: generateReport(); break;
             default: printf("Invalid option.\n");
         }
     }
@@ -366,6 +310,8 @@ void addPatientRecord() {
     strcpy(patients[index].diagnosis, "Pending");
     strcpy(patients[index].treatment_info, "Pending");
     strcpy(patients[index].prescription, "None");
+    strcpy(patients[index].assigned_doctor, "None Assigned Yet");
+    strcpy(patients[index].appointment_datetime, "None");
     patients[index].is_cancelled = 0;
     strcpy(patients[index].cancellation_reason, "None");
     patients[index].total_bill = 0.0;
@@ -378,38 +324,23 @@ void addPatientRecord() {
     patients[index].name[strcspn(patients[index].name, "\n")] = 0;
 
     printf("Enter Age: ");
-    scanf("%d", &patients[index].age);
-    getchar();
+    patients[index].age = getIntInput();
 
     printf("Enter Symptoms / Problems: ");
     fgets(patients[index].symptom, sizeof(patients[index].symptom), stdin);
     patients[index].symptom[strcspn(patients[index].symptom, "\n")] = 0;
-
-    printf("Enter Assigned Doctor Name (e.g., Dr. Smith): ");
-    fgets(patients[index].assigned_doctor, sizeof(patients[index].assigned_doctor), stdin);
-    patients[index].assigned_doctor[strcspn(patients[index].assigned_doctor, "\n")] = 0;
-
-    printf("Enter Appointment Date & Time (e.g., Mon 10:00 AM): ");
-    fgets(patients[index].appointment_datetime, sizeof(patients[index].appointment_datetime), stdin);
-    patients[index].appointment_datetime[strcspn(patients[index].appointment_datetime, "\n")] = 0;
 
     printf("Enter OT Details (e.g., 'Thu 3pm - OR 2' or enter 'None'): ");
     fgets(patients[index].ot_schedule, sizeof(patients[index].ot_schedule), stdin);
     patients[index].ot_schedule[strcspn(patients[index].ot_schedule, "\n")] = 0;
 
     printf("Enter Initial Service Charge / Bill ($): ");
-    scanf("%lf", &patients[index].total_bill);
-    getchar();
+    char bill_buffer[50];
+    fgets(bill_buffer, sizeof(bill_buffer), stdin);
+    patients[index].total_bill = atof(bill_buffer);
 
-    char raw_password[100];
-    printf("Set Login Password for this Patient: ");
-    fgets(raw_password, sizeof(raw_password), stdin);
-    raw_password[strcspn(raw_password, "\n")] = 0;
-    md5_hash(raw_password, patients[index].password_hash);
-
-    printf("Patient Record, Doctor Assignment & OT Details Saved Successfully!\n");
+    printf("Patient Record Saved Successfully! (Please assign a doctor from the Admin Menu)\n");
 }
-
 
 void addDoctorInformation() {
     doctor_count++;
@@ -437,17 +368,102 @@ void addDoctorInformation() {
     doctors[index].specialty[strcspn(doctors[index].specialty, "\n")] = 0;
 
     doctors[index].earnings = 0.0;
-
-    char raw_password[100];
-    printf("Set Login Password for this Doctor: ");
-    fgets(raw_password, sizeof(raw_password), stdin);
-    raw_password[strcspn(raw_password, "\n")] = 0;
-    md5_hash(raw_password, doctors[index].password_hash);
+    doctors[index].schedule_count = 0;
 
     printf("Doctor Profile Saved!\n");
 }
 
+void viewDoctorSchedulesAdmin() {
+    if (doctor_count == 0) {
+        printf("No doctors available in the system.\n");
+        return;
+    }
+    printf("\n--- DOCTOR SCHEDULES ---\n");
+    for (int i = 0; i < doctor_count; i++) {
+        printf("\nDoctor: %s (Specialty: %s)\n", doctors[i].name, doctors[i].specialty);
+        if (doctors[i].schedule_count == 0) {
+            printf("  -> No available slots created by the doctor yet.\n");
+        } else {
+            for (int j = 0; j < doctors[i].schedule_count; j++) {
+                printf("  Slot %d: %s\n", j + 1, doctors[i].schedules[j]);
+            }
+        }
+    }
+}
 
+void assignDoctorToPatient() {
+    char pat_id[50], doc_id[50];
+    
+    printf("Enter Patient ID to assign doctor to: ");
+    fgets(pat_id, sizeof(pat_id), stdin);
+    pat_id[strcspn(pat_id, "\n")] = 0;
+
+    int p_idx = -1;
+    for (int i = 0; i < patient_count; i++) {
+        if (strcmp(patients[i].id, pat_id) == 0) {
+            p_idx = i;
+            break;
+        }
+    }
+
+    if (p_idx == -1) {
+        printf("Patient ID not found!\n");
+        return;
+    }
+
+    printf("\nAvailable Doctors:\n");
+    for (int i = 0; i < doctor_count; i++) {
+        printf("ID: %-15s | Name: %-20s | Specialty: %s\n", doctors[i].id, doctors[i].name, doctors[i].specialty);
+    }
+
+    printf("\nEnter Doctor ID to assign: ");
+    fgets(doc_id, sizeof(doc_id), stdin);
+    doc_id[strcspn(doc_id, "\n")] = 0;
+
+    int d_idx = -1;
+    for (int i = 0; i < doctor_count; i++) {
+        if (strcmp(doctors[i].id, doc_id) == 0) {
+            d_idx = i;
+            break;
+        }
+    }
+
+    if (d_idx == -1) {
+        printf("Doctor ID not found!\n");
+        return;
+    }
+
+    if (doctors[d_idx].schedule_count == 0) {
+        printf("This doctor has not opened any available schedules yet. Cannot assign.\n");
+        return;
+    }
+
+    printf("\nAvailable Time Slots for %s:\n", doctors[d_idx].name);
+    for (int j = 0; j < doctors[d_idx].schedule_count; j++) {
+        printf("[%d] %s\n", j + 1, doctors[d_idx].schedules[j]);
+    }
+
+    printf("Select Slot Number to assign: ");
+    int slot_choice = getIntInput();
+
+    if (slot_choice < 1 || slot_choice > doctors[d_idx].schedule_count) {
+        printf("Invalid slot selection.\n");
+        return;
+    }
+
+    // Assign to patient
+    strcpy(patients[p_idx].assigned_doctor, doctors[d_idx].name);
+    strcpy(patients[p_idx].appointment_datetime, doctors[d_idx].schedules[slot_choice - 1]);
+    
+    // Remove the booked slot from the doctor's array
+    for (int j = slot_choice - 1; j < doctors[d_idx].schedule_count - 1; j++) {
+        strcpy(doctors[d_idx].schedules[j], doctors[d_idx].schedules[j + 1]);
+    }
+    doctors[d_idx].schedule_count--;
+
+    printf("Successfully assigned Patient %s to %s for slot: %s\n", 
+           patients[p_idx].name, doctors[d_idx].name, patients[p_idx].appointment_datetime);
+}
 
 void processPatientPaymentAdmin() {
     char id[50];
@@ -473,14 +489,14 @@ void processPatientPaymentAdmin() {
             return;
         }
 
-        double pay;
+        char pay_buffer[50];
         printf("Enter Payment Amount Received ($): ");
-        scanf("%lf", &pay);
-        getchar();
+        fgets(pay_buffer, sizeof(pay_buffer), stdin);
+        double pay = atof(pay_buffer);
 
         if (pay > 0) {
             patients[idx].paid_amount += pay;
-            printf("Payment successfully registered. Remaining Due: $%.2f\n",
+            printf("Payment successfully registered. Remaining Due: $%.2f\n", 
                    patients[idx].total_bill - patients[idx].paid_amount);
         } else {
             printf("Invalid Payment Amount.\n");
@@ -505,11 +521,11 @@ void processDoctorSalaryAdmin() {
     }
 
     if (idx != -1) {
-        double amount;
+        char amt_buffer[50];
         printf("Doctor: %s | Current Accumulated Earnings: $%.2f\n", doctors[idx].name, doctors[idx].earnings);
         printf("Enter Salary / Payment Amount to Disburse ($): ");
-        scanf("%lf", &amount);
-        getchar();
+        fgets(amt_buffer, sizeof(amt_buffer), stdin);
+        double amount = atof(amt_buffer);
 
         if (amount > 0) {
             doctors[idx].earnings += amount;
@@ -528,7 +544,7 @@ void generateReport() {
     printf("===================================================================================\n");
     printf("Total Active Patients in Database:  %d\n", patient_count);
     printf("Total Registered Doctors in Database: %d\n", doctor_count);
-
+    
     printf("\n--- REGISTERED DOCTORS LIST ---\n");
     if (doctor_count > 0) {
         printf("+--------------------+----------------------+----------------------+----------------------+\n");
@@ -537,7 +553,7 @@ void generateReport() {
         for (int i = 0; i < doctor_count; i++) {
             char earn_str[30];
             snprintf(earn_str, sizeof(earn_str), "%.2f", doctors[i].earnings);
-            printf("| %-19s| %-21s| %-21s| %-21s|\n",
+            printf("| %-19s| %-21s| %-21s| %-21s|\n", 
                    doctors[i].id, doctors[i].name, doctors[i].specialty, earn_str);
         }
         printf("+--------------------+----------------------+----------------------+----------------------+\n");
@@ -558,7 +574,7 @@ void generateReport() {
                 strcpy(status, "ACTIVE");
             }
 
-            printf("| %-19s| %-21s| %-4d| %-21s| %-21s| %-21s|\n",
+            printf("| %-19s| %-21s| %-4d| %-21s| %-21s| %-21s|\n", 
                    patients[i].id, patients[i].name, patients[i].age, patients[i].assigned_doctor, status, patients[i].ot_schedule);
         }
         printf("+--------------------+----------------------+-----+----------------------+----------------------+----------------------+----------------------+\n");
@@ -586,16 +602,15 @@ void doctorMenu(char* doc_id) {
         printf("1. View Assigned Patient Queue\n");
         printf("2. Conduct Examination (Diagnosis/Treatment/Prescription)\n");
         printf("3. View Own Payments & Earnings\n");
-        printf("4. View Assigned Schedule (Set by Admin)\n");
+        printf("4. Make / Add Available Schedule Slots\n");
         printf("5. View Upcoming OT Schedule\n");
-        printf("6. Cancel My Assigned Appointment / Schedule\n");
-        printf("7. Logout\n");
+        printf("6. Cancel Assigned Appointment / Schedule\n");
+        printf("7. Logout\n"); 
         printf("Enter choice: ");
-        scanf("%d", &choice);
-        getchar();
+        choice = getIntInput();
 
         if (choice == 7) {
-            printf("\nLogging out of Doctor Portal... Wishing you a better life.\n");
+            printf("\nLogging out of Doctor Portal...\n");
             break;
         }
 
@@ -604,8 +619,8 @@ void doctorMenu(char* doc_id) {
                 int matches = 0;
                 printf("\n--- Patients Under Treatment of Dr. %s ---\n", doctors[doc_idx].name);
                 printf("+--------------------+----------------------+----------------------+----------------------+----------------------+\n");
-                printf("|%-20s|%-22s|%-22s|%-22s|%-22s|\n", " Patient ID", " Name", " Symptom", " Appt Status", " OT Details");
-                printf("+--------------------+----------------------+----------------------+----------------------+----------------------+\n");
+                printf("|%-20s|%-22s|%-22s|%-22s|%-22s|\n", " Patient ID", " Name", " Scheduled Time", " Appt Status", " OT Details");
+                printf("+--------------------+----------------------+----------------------+----------------------+\n");
 
                 for (int i = 0; i < patient_count; i++) {
                     if (strcmp(patients[i].assigned_doctor, doctors[doc_idx].name) == 0) {
@@ -616,12 +631,12 @@ void doctorMenu(char* doc_id) {
                             strcpy(status, "ACTIVE");
                         }
 
-                        printf("| %-19s| %-21s| %-21s| %-21s| %-21s|\n",
-                               patients[i].id, patients[i].name, patients[i].symptom, status, patients[i].ot_schedule);
+                        printf("| %-19s| %-21s| %-21s| %-21s| %-21s|\n", 
+                               patients[i].id, patients[i].name, patients[i].appointment_datetime, status, patients[i].ot_schedule);
                         matches++;
                     }
                 }
-                printf("+--------------------+----------------------+----------------------+----------------------+----------------------+----------------------+\n");
+                printf("+--------------------+----------------------+----------------------+----------------------+----------------------+\n");
                 if(matches == 0) printf("No patients currently assigned to your queue.\n");
                 break;
             }
@@ -640,7 +655,7 @@ void doctorMenu(char* doc_id) {
 
                 if (p_idx != -1) {
                     if (patients[p_idx].is_cancelled) {
-                        printf("Cannot examine this patient � the appointment has been cancelled.\n");
+                        printf("Cannot examine this patient — the appointment has been cancelled.\n");
                         break;
                     }
 
@@ -657,10 +672,9 @@ void doctorMenu(char* doc_id) {
                     patients[p_idx].prescription[strcspn(patients[p_idx].prescription, "\n")] = 0;
 
                     printf("Enter Additional Medical Fee/Bill to add ($): ");
-                    double additional_bill;
-                    scanf("%lf", &additional_bill);
-                    getchar();
-                    patients[p_idx].total_bill += additional_bill;
+                    char bill_buffer[50];
+                    fgets(bill_buffer, sizeof(bill_buffer), stdin);
+                    patients[p_idx].total_bill += atof(bill_buffer);
 
                     printf("Clinical updates saved successfully.\n");
                 } else {
@@ -669,7 +683,7 @@ void doctorMenu(char* doc_id) {
                 break;
 
             case 3: viewDoctorPayments(doc_idx); break;
-            case 4: viewDoctorAssignedSchedule(doc_idx); break;
+            case 4: makeDoctorSchedule(doc_idx); break;
             case 5: viewUpcomingOT(doc_idx); break;
             case 6: cancelDoctorSchedule(doc_idx); break;
             default: printf("Invalid option.\n");
@@ -686,31 +700,31 @@ void viewDoctorPayments(int doc_idx) {
     printf("+----------------------------------------------------+\n");
 }
 
-void viewDoctorAssignedSchedule(int doc_idx) {
-    int matches = 0;
-    printf("\n--- ASSIGNED APPOINTMENTS & SCHEDULE (ADMIN SET) ---\n");
-    printf("+--------------------+----------------------+----------------------+----------------------+\n");
-    printf("|%-20s|%-22s|%-22s|%-22s|\n", " Patient ID", " Patient Name", " Scheduled Time", " Status");
-    printf("+--------------------+----------------------+----------------------+----------------------+\n");
+void makeDoctorSchedule(int doc_idx) {
+    if (doctors[doc_idx].schedule_count >= 20) {
+        printf("You have reached the maximum allowed available slots (20).\n");
+        return;
+    }
 
-    for (int i = 0; i < patient_count; i++) {
-        if (strcmp(patients[i].assigned_doctor, doctors[doc_idx].name) == 0) {
-            char status[30];
-            if (patients[i].is_cancelled) {
-                strcpy(status, "CANCELLED");
-            } else {
-                strcpy(status, "ACTIVE");
-            }
-
-            printf("| %-19s| %-21s| %-21s| %-21s|\n",
-                   patients[i].id, patients[i].name, patients[i].appointment_datetime, status);
-            matches++;
+    printf("\n--- CURRENT UNBOOKED SLOTS ---\n");
+    if (doctors[doc_idx].schedule_count == 0) {
+        printf("You have no available slots open.\n");
+    } else {
+        for (int i = 0; i < doctors[doc_idx].schedule_count; i++) {
+            printf("[%d] %s\n", i + 1, doctors[doc_idx].schedules[i]);
         }
     }
-    printf("+--------------------+----------------------+----------------------+----------------------+\n");
-    if (matches == 0) {
-        printf("No appointments or schedule assigned by Admin yet.\n");
-    }
+
+    printf("\nEnter new available time slot (e.g., 'Monday 10:00 AM - 12:00 PM'): ");
+    char new_slot[100];
+    fgets(new_slot, sizeof(new_slot), stdin);
+    new_slot[strcspn(new_slot, "\n")] = 0;
+
+    int idx = doctors[doc_idx].schedule_count;
+    strcpy(doctors[doc_idx].schedules[idx], new_slot);
+    doctors[doc_idx].schedule_count++;
+
+    printf("Schedule slot added successfully! Admin can now assign patients to this slot.\n");
 }
 
 void viewUpcomingOT(int doc_idx) {
@@ -729,7 +743,7 @@ void viewUpcomingOT(int doc_idx) {
                 strcpy(status, "ACTIVE");
             }
 
-            printf("| %-19s| %-21s| %-21s| %-21s|\n",
+            printf("| %-19s| %-21s| %-21s| %-21s|\n", 
                    patients[i].id, patients[i].name, patients[i].ot_schedule, status);
             matches++;
         }
@@ -742,14 +756,13 @@ void viewUpcomingOT(int doc_idx) {
 
 void cancelDoctorSchedule(int doc_idx) {
     char target_pid[50];
-    printf("\n--- CANCEL APPOINTMENT / SCHEDULE ---\n");
+    printf("\n--- CANCEL ASSIGNED APPOINTMENT ---\n");
     printf("Enter Patient ID whose appointment you want to cancel: ");
     fgets(target_pid, sizeof(target_pid), stdin);
     target_pid[strcspn(target_pid, "\n")] = 0;
 
     int p_idx = -1;
     for (int i = 0; i < patient_count; i++) {
-        // Author verification: Ensures only the assigned doctor can cancel their own schedule
         if (strcmp(patients[i].id, target_pid) == 0 && strcmp(patients[i].assigned_doctor, doctors[doc_idx].name) == 0) {
             p_idx = i;
             break;
@@ -768,8 +781,7 @@ void cancelDoctorSchedule(int doc_idx) {
 
         patients[p_idx].is_cancelled = 1;
 
-        printf("\nAppointment for Patient %s (ID: %s) successfully CANCELLED!\n", patients[p_idx].name, patients[p_idx].id);
-        printf("Notice updated across Admin and Patient portals.\n");
+        printf("\nAppointment for Patient %s successfully CANCELLED!\n", patients[p_idx].name);
     } else {
         printf("Error: Patient ID not found or you are not authorized to cancel this appointment.\n");
     }
@@ -789,23 +801,22 @@ void patientMenu(char* pat_id) {
     while (1) {
         printf("\n--- PATIENT PORTAL ---\n");
         printf("1. View Own Information\n");
-        printf("2. View Appointment & Assigned Doctor Details\n");
+        printf("2. View Assigned Doctor & Schedule\n");
         printf("3. View Schedule Cancellation Status\n");
         printf("4. View Treatment History & Prescription\n");
         printf("5. View Dues & Make Online Payment\n");
         printf("6. Rate Doctor & System\n");
-        printf("7. Logout\n");
+        printf("7. Logout\n"); 
         printf("Enter choice: ");
-        scanf("%d", &choice);
-        getchar();
+        choice = getIntInput();
 
         if (choice == 7) {
-            printf("\nLogging out of Patient Portal... Wishing you a better life.\n");
+            printf("\nLogging out of Patient Portal...\n");
             break;
         }
 
         switch (choice) {
-            case 1:
+            case 1: 
                 printf("\n+----------------------------------------------------+\n");
                 printf("|                  MY PROFILE DETAILS                |\n");
                 printf("+----------------------------------------------------+\n");
@@ -844,7 +855,7 @@ void patientMenu(char* pat_id) {
                 viewCancellationStatus(idx);
                 break;
 
-            case 4:
+            case 4: 
                 printf("\n+----------------------------------------------------+\n");
                 printf("|             HEALTH SUMMARY & TREATMENT             |\n");
                 printf("+----------------------------------------------------+\n");
@@ -903,19 +914,17 @@ void viewDuesAndMakePayment(int pat_idx) {
     }
 
     printf("\nWould you like to make a payment now? (1 = Yes, 0 = No): ");
-    int pay_choice;
-    scanf("%d", &pay_choice);
-    getchar();
+    int pay_choice = getIntInput();
 
     if (pay_choice == 1) {
-        double amt;
         printf("Enter Payment Amount ($): ");
-        scanf("%lf", &amt);
-        getchar();
+        char amt_buffer[50];
+        fgets(amt_buffer, sizeof(amt_buffer), stdin);
+        double amt = atof(amt_buffer);
 
         if (amt > 0 && amt <= due) {
             patients[pat_idx].paid_amount += amt;
-            printf("Payment of $%.2f received successfully! Remaining Dues: $%.2f\n",
+            printf("Payment of $%.2f received successfully! Remaining Dues: $%.2f\n", 
                    amt, patients[pat_idx].total_bill - patients[pat_idx].paid_amount);
         } else if (amt > due) {
             printf("Amount exceeds total dues ($%.2f). Please enter an exact or smaller amount.\n", due);
@@ -930,13 +939,13 @@ void rateDoctorAndSystem(int idx) {
 
     printf("\n--- FEEDBACK & RATING ---\n");
     printf("Rate your assigned doctor (%s) from 1 to 5 Stars: ", patients[idx].assigned_doctor);
-    scanf("%d", &doc_rating);
+    doc_rating = getIntInput();
     if (doc_rating < 1) doc_rating = 1;
     if (doc_rating > 5) doc_rating = 5;
     patients[idx].doctor_rating = doc_rating;
 
     printf("Rate the Healwish System overall from 1 to 5 Stars: ");
-    scanf("%d", &sys_rating);
+    sys_rating = getIntInput();
     if (sys_rating < 1) sys_rating = 1;
     if (sys_rating > 5) sys_rating = 5;
     patients[idx].system_rating = sys_rating;
