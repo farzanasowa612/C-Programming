@@ -232,8 +232,8 @@ void adminMenu();
 void doctorMenu(char* doc_id);
 void patientMenu(char* pat_id);
 
-void addPatientRecord();
 void addDoctorInformation();
+void addPatientRecord();
 void processPatientPaymentAdmin();
 void processDoctorSalaryAdmin();
 void generateReport();
@@ -346,8 +346,8 @@ void adminMenu() {
     int choice;
     while (1) {
         printf("\n--- ADMIN PANEL ---\n");
-        printf("1. Add Patient Record (Assign Doctor & OT)\n");
-        printf("2. Add Doctor Information & Schedule\n");
+        printf("1. Add Doctor Information & Schedule\n");
+        printf("2. Add Patient Record (Assign Doctor & OT)\n");
         printf("3. Receive Patient Payment\n");
         printf("4. Disburse Doctor Payment/Salary\n");
         printf("5. Generate System Report\n");
@@ -366,14 +366,68 @@ void adminMenu() {
         }
 
         switch (choice) {
-            case 1: addPatientRecord(); break;
-            case 2: addDoctorInformation(); break;
+            case 1: addDoctorInformation(); break;
+            case 2: addPatientRecord(); break;
             case 3: processPatientPaymentAdmin(); break;
             case 4: processDoctorSalaryAdmin(); break;
             case 5: generateReport(); break;
             default: printf("Invalid option.\n");
         }
     }
+}
+
+void addDoctorInformation() {
+    doctor_count++;
+    doctors = (Doctor*)realloc(doctors, doctor_count * sizeof(Doctor));
+    int index = doctor_count - 1;
+    char raw_password[100];
+
+    printf("Enter Doctor ID: ");
+    fgets(doctors[index].id, sizeof(doctors[index].id), stdin);
+    doctors[index].id[strcspn(doctors[index].id, "\n")] = 0;
+
+    printf("Set Password for Doctor Account: ");
+    fgets(raw_password, sizeof(raw_password), stdin);
+    raw_password[strcspn(raw_password, "\n")] = 0;
+    generateMD5(raw_password, doctors[index].password_hash);
+
+    printf("Enter Doctor Name: ");
+    fgets(doctors[index].name, sizeof(doctors[index].name), stdin);
+    doctors[index].name[strcspn(doctors[index].name, "\n")] = 0;
+
+    printf("Enter Degrees: ");
+    fgets(doctors[index].degree, sizeof(doctors[index].degree), stdin);
+    doctors[index].degree[strcspn(doctors[index].degree, "\n")] = 0;
+
+    printf("Enter Medical College Name: ");
+    fgets(doctors[index].medical_college, sizeof(doctors[index].medical_college), stdin);
+    doctors[index].medical_college[strcspn(doctors[index].medical_college, "\n")] = 0;
+
+    printf("Enter Specialty: ");
+    fgets(doctors[index].specialty, sizeof(doctors[index].specialty), stdin);
+    doctors[index].specialty[strcspn(doctors[index].specialty, "\n")] = 0;
+
+    int sched_choice = 0;
+    while(sched_choice < 1 || sched_choice > 3) {
+        printf("\nSelect Doctor's Daily Schedule:\n");
+        printf("1. 10:00 AM - 12:00 PM\n");
+        printf("2. 03:00 PM - 05:00 PM\n");
+        printf("3. 07:00 PM - 09:00 PM\n");
+        printf("Enter Choice (1/2/3): ");
+        scanf("%d", &sched_choice);
+        getchar();
+        
+        switch(sched_choice) {
+            case 1: strcpy(doctors[index].schedule, "10am - 12pm"); break;
+            case 2: strcpy(doctors[index].schedule, "3pm - 5pm"); break;
+            case 3: strcpy(doctors[index].schedule, "7pm - 9pm"); break;
+            default: printf("Invalid choice, please select 1, 2, or 3.\n");
+        }
+    }
+
+    doctors[index].earnings = 0.0;
+
+    printf("\nDoctor Profile Secured and Saved!\n");
 }
 
 void addPatientRecord() {
@@ -494,61 +548,6 @@ void addPatientRecord() {
 
     printf("\nPatient Record Secured and Saved Successfully!\n");
 }
-
-void addDoctorInformation() {
-    doctor_count++;
-    doctors = (Doctor*)realloc(doctors, doctor_count * sizeof(Doctor));
-    int index = doctor_count - 1;
-    char raw_password[100];
-
-    printf("Enter Doctor ID: ");
-    fgets(doctors[index].id, sizeof(doctors[index].id), stdin);
-    doctors[index].id[strcspn(doctors[index].id, "\n")] = 0;
-
-    printf("Set Password for Doctor Account: ");
-    fgets(raw_password, sizeof(raw_password), stdin);
-    raw_password[strcspn(raw_password, "\n")] = 0;
-    generateMD5(raw_password, doctors[index].password_hash);
-
-    printf("Enter Doctor Name: ");
-    fgets(doctors[index].name, sizeof(doctors[index].name), stdin);
-    doctors[index].name[strcspn(doctors[index].name, "\n")] = 0;
-
-    printf("Enter Degrees: ");
-    fgets(doctors[index].degree, sizeof(doctors[index].degree), stdin);
-    doctors[index].degree[strcspn(doctors[index].degree, "\n")] = 0;
-
-    printf("Enter Medical College Name: ");
-    fgets(doctors[index].medical_college, sizeof(doctors[index].medical_college), stdin);
-    doctors[index].medical_college[strcspn(doctors[index].medical_college, "\n")] = 0;
-
-    printf("Enter Specialty: ");
-    fgets(doctors[index].specialty, sizeof(doctors[index].specialty), stdin);
-    doctors[index].specialty[strcspn(doctors[index].specialty, "\n")] = 0;
-
-    int sched_choice = 0;
-    while(sched_choice < 1 || sched_choice > 3) {
-        printf("\nSelect Doctor's Daily Schedule:\n");
-        printf("1. 10:00 AM - 12:00 PM\n");
-        printf("2. 03:00 PM - 05:00 PM\n");
-        printf("3. 07:00 PM - 09:00 PM\n");
-        printf("Enter Choice (1/2/3): ");
-        scanf("%d", &sched_choice);
-        getchar();
-        
-        switch(sched_choice) {
-            case 1: strcpy(doctors[index].schedule, "10am - 12pm"); break;
-            case 2: strcpy(doctors[index].schedule, "3pm - 5pm"); break;
-            case 3: strcpy(doctors[index].schedule, "7pm - 9pm"); break;
-            default: printf("Invalid choice, please select 1, 2, or 3.\n");
-        }
-    }
-
-    doctors[index].earnings = 0.0;
-
-    printf("\nDoctor Profile Secured and Saved!\n");
-}
-
 
 void processPatientPaymentAdmin() {
     char id[50];
