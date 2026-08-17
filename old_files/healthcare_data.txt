@@ -1,0 +1,12 @@
+PATIENT:01|Nayeem|31|Anxiety,depression|Dr.Atoshi|Awaiting Evaluation|Under Review|None
+PATIENT:02|Jaima|20|Fever|Dr.Tushar|Awaiting Evaluation|Under Review|None
+PATIENT:03|Nowshin|27|Trauma-Related problem|Dr.Atoshi|Awaiting Evaluation|Under Review|None
+PATIENT:04|Jim |33|Angina|Dr.Mithila|Awaiting Evaluation|Under Review|None
+PATIENT:05|Rifat|22|Broken leg|Dr.Priynka|Awaiting Evaluation|Under Review|None
+PATIENT:06|Jack|45|Fever and cough|Dr.Jannatul|Awaiting Evaluation|Under Review|None
+DOCTOR:101|Dr.Atoshi|Medicine
+DOCTOR:102|Tushar|Medicine
+DOCTOR:101|Dr.Atoshi|Psychologist
+DOCTOR:103|Dr.Mithila|Cardiologist
+DOCTOR:104|Dr.Priyanka|Orthopedics
+DOCTOR:105|Dr.Jannatul |Medicine
