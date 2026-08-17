@@ -869,7 +869,7 @@ void patientMenu(char* pat_id) {
                 printf("Thank you for your rating! Feedback recorded.\n");
             }
 
-            int action = navPrompt(&choice, 3);
+            int  action = navPrompt(&choice, 3);
             if (action == 3) break;
         }
     }
