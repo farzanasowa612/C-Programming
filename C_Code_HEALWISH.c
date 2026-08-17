@@ -243,20 +243,6 @@ void generateReportMenu();
 
 int navPrompt(int *current_choice, int max_options);
 
-/* ==================== PROTOTYPES ==================== */
-
-void adminMenu();
-void doctorMenu(char* doc_id);
-void patientMenu(char* pat_id);
-
-void addDoctorMenu();
-void addPatientMenu();
-void managePaymentsMenu();
-void disburseSalaryMenu();
-void generateReportMenu();
-
-int navPrompt(int *current_choice, int max_options);
-
 /* ==================== TIME CALCULATOR HELPER ==================== */
 // Converts slot range string (e.g. "10am-12pm", "3pm-5pm", "7pm-9pm") or generic time into starting hour/minute,
 // then adds (index * 5) minutes for sequential patient appointments.
@@ -883,7 +869,7 @@ void patientMenu(char* pat_id) {
                 printf("Thank you for your rating! Feedback recorded.\n");
             }
 
-            int  action = navPrompt(&choice, 3);
+            int action = navPrompt(&choice, 3);
             if (action == 3) break;
         }
     }
