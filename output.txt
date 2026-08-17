@@ -1,5 +1,0 @@
-FILE *fp = fopen("output.txt", "w");
-
-fprintf(fp, "Patient Added Successfully\n");
-
-fclose(fp);
